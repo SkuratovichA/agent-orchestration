@@ -1,0 +1,5 @@
+# marker	language	plugin	binary	install
+tsconfig.json	TypeScript	typescript-lsp	typescript-language-server	pnpm add -g typescript-language-server typescript
+pyproject.toml	Python	pyright-lsp	pyright-langserver	pnpm add -g pyright
+go.mod	Go	gopls-lsp	gopls	go install golang.org/x/tools/gopls@latest
+Cargo.toml	Rust	rust-analyzer-lsp	rust-analyzer	rustup component add rust-analyzer
