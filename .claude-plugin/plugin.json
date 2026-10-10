@@ -4,5 +4,6 @@
   "version": "0.4.0",
   "description": "Rules for spawning subagents and workflow stages: model and effort per stage, budgets, staged verification, the context hygiene block every spawned agent gets, and the writing-briefs skill for the text of a brief: skeleton, per-model phrasing, error mitigations, report handling. Ships five agent types: reader, builder-m, builder-l, reviewer, reviewer-arch.",
   "author": { "name": "Aliaksandr Skuratovich" },
+  "license": "MIT",
   "skills": ["./"]
 }

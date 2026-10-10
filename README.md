@@ -53,4 +53,8 @@ Checked against the Claude Code documentation on 2026-10-09 (version 2.1.296).
 - A subagent can call any skill through the Skill tool. `skills:` in its frontmatter goes further and injects the full text of the listed skills at startup. None of the agents here preload a skill, because which skill governs the work depends on the files, and the brief names it.
 - A `CLAUDE.md` at the plugin root is not loaded as context. Rules that must reach an agent ship as a skill or through the `SubagentStart` hook, which is what `hooks/context.sh` does. https://code.claude.com/docs/en/plugins-reference
 - A subagent can spawn subagents of its own, up to three layers below the main conversation; `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` changes the limit. The builders and reviewers use that for `reader` only, and `reader` has no Agent tool.
-- Whether a plugin loaded from a skills directory exposes its `agents/` is not stated in the documentation. Confirm it in a new session: the Agent tool must list the five types above.
+- A plugin loaded from a skills directory exposes its `agents/`, although the documentation does not say so: a new session started on 2026-10-10 listed the five types above as `agent-orchestration:<name>` in its Agent tool.
+
+## License
+
+MIT, see `LICENSE`.
