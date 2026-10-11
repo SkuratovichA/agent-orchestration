@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Claude Code CLI
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Validate the manifests, the agents and the skills
+        run: |
+          for target in . .claude-plugin/plugin.json agents skills; do
+            claude plugin validate "$target" --strict || exit 1
+          done
+      - name: Run the hook tests
+        run: |
+          for t in hooks/*.test.sh; do
+            echo "== $t"
+            sh "$t" || exit 1
+          done

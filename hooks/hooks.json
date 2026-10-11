@@ -2,7 +2,7 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|clear|compact",
+        "matcher": "startup|resume|clear|compact",
         "hooks": [
           { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/context.sh\" SessionStart" }
         ]
@@ -16,8 +16,16 @@
     ],
     "SubagentStart": [
       {
+        "matcher": "^agent-orchestration:builder-",
         "hooks": [
           { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/context.sh\" SubagentStart" }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/cleanup.sh\"" }
         ]
       }
     ],

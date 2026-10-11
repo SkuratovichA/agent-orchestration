@@ -1,0 +1,13 @@
+#!/bin/sh
+# SessionEnd: removes the ending session's Bash-output markers, and any marker older than a day, which covers
+# sessions that ended without this hook running. Silent, and always exits 0.
+. "$(dirname "$0")/lib.sh"
+command -v jq >/dev/null 2>&1 || exit 0
+session=$(cat | jq -r '.session_id // ""' 2>/dev/null)
+case "$session" in
+  ''|*[!A-Za-z0-9_-]*) exit 0 ;;
+esac
+dir=$(state_dir) || exit 0
+rm -f "$dir/$session".* 2>/dev/null
+find "$dir" -type f -mtime +0 -exec rm -f {} + 2>/dev/null
+exit 0

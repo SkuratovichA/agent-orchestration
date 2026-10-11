@@ -1,0 +1,12 @@
+{
+  "name": "agent-orchestration",
+  "owner": { "name": "Aliaksandr Skuratovich" },
+  "metadata": { "description": "The agent-orchestration plugin: rules, agent types and hooks for spawning subagents and workflow stages." },
+  "plugins": [
+    {
+      "name": "agent-orchestration",
+      "source": "./",
+      "description": "Rules for spawning subagents and workflow stages, with five agent types and the hooks that back them."
+    }
+  ]
+}
