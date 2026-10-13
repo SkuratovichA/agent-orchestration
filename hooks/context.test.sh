@@ -37,6 +37,18 @@ case "$out" in
   *) bad "SessionStart names both skills" "output: $(printf '%s' "$out" | head -c 80)" ;;
 esac
 
+sess() { # source json; runs SessionStart with that stdin
+  printf '%s' "$1" | CLAUDE_PLUGIN_ROOT=$root "${2:-$shell}" "$hook" SessionStart
+}
+has() { # label output needle expect(1|0)
+  case "$2" in *"$3"*) found=1 ;; *) found=0 ;; esac
+  if [ "$found" = "$4" ]; then ok "$1"; else bad "$1" "output: $(printf '%s' "$2" | head -c 80)"; fi
+}
+out=$(sess '{"source":"compact"}'); has "compact source says re-attached" "$out" "re-attached" 1; has "compact source drops the startup line" "$out" "The agent-orchestration plugin is active" 0
+out=$(sess '{"source":"startup"}'); has "startup source prints the startup line" "$out" "The agent-orchestration plugin is active" 1; has "startup source does not say re-attached" "$out" "re-attached" 0
+out=$(sess ''); has "empty stdin prints the startup line" "$out" "The agent-orchestration plugin is active" 1; has "empty stdin does not say re-attached" "$out" "re-attached" 0
+out=$(sess 'not json'); has "non-JSON stdin prints the startup line" "$out" "The agent-orchestration plugin is active" 1
+
 bin=$(mktemp -d)
 for tool in cat sed awk dirname; do ln -s "$(command -v $tool)" "$bin/$tool"; done
 shell_path=$(command -v "$shell")
@@ -45,6 +57,8 @@ got=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext' 2>/dev/
 if [ "$rc" = 0 ] && [ "$got" = "$(cat "$block")" ]; then ok "builder emits without jq on PATH"; else bad "builder emits without jq on PATH" "exit $rc"; fi
 out=$(printf '%s' '{"agent_type":"Explore"}' | PATH=$bin CLAUDE_PLUGIN_ROOT=$root "$shell_path" "$hook" SubagentStart); rc=$?
 if [ "$rc" = 0 ] && [ -z "$out" ]; then ok "other type is silent without jq on PATH"; else bad "other type is silent without jq on PATH" "exit $rc"; fi
+out=$(printf '%s' '{"source":"compact"}' | PATH=$bin CLAUDE_PLUGIN_ROOT=$root "$shell_path" "$hook" SessionStart); has "compact source says re-attached without jq on PATH" "$out" "re-attached" 1
+out=$(printf '%s' '{"source":"startup"}' | PATH=$bin CLAUDE_PLUGIN_ROOT=$root "$shell_path" "$hook" SessionStart); has "startup source says no re-attached without jq on PATH" "$out" "re-attached" 0
 rm -rf "$bin"
 
 ROOT=$(mktemp -d)

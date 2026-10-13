@@ -10,6 +10,16 @@ block="$root/skills/agent-orchestration/references/worker-brief-block.md"
 
 case "$event" in
   SessionStart)
+    input=$(cat)
+    if command -v jq >/dev/null 2>&1; then
+      source=$(printf '%s' "$input" | jq -r '.source | select(type == "string")' 2>/dev/null)
+    else
+      source=$(printf '%s\n' "$input" | sed -n 's/.*"source"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | sed 1q)
+    fi
+    if [ "$source" = compact ]; then
+      printf '%s\n' 'The agent-orchestration skills you loaded before this compaction are re-attached in this context, so do not load them again, and re-read one of their references only for a section you need now and do not have. If you had not loaded them, load agent-orchestration:agent-orchestration before spawning a subagent or a Workflow stage, and agent-orchestration:writing-briefs before writing a brief.'
+      exit 0
+    fi
     printf '%s\n' 'The agent-orchestration plugin is active. Load its agent-orchestration:agent-orchestration skill before spawning a subagent or a Workflow stage, and agent-orchestration:writing-briefs before writing a brief. Its builder types receive the plugin'"'"'s worker rules on their own; any other implementer you want bound by them gets worker-brief-block.md pasted into its brief.'
     ;;
   SubagentStart)

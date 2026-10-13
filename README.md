@@ -19,7 +19,9 @@ The same from inside a session: `/plugin marketplace add SkuratovichA/agent-orch
 | --- | --- |
 | `skills/agent-orchestration/` | The `agent-orchestration:agent-orchestration` skill: model and effort per stage, the agent roster, when a command runs directly and when it goes to a reader, several builders in one tree, staged verification, context economics |
 | `skills/agent-orchestration/references/worker-brief-block.md` | The short block of rules a builder works under |
+| `skills/agent-orchestration/references/` | Also the sections the skill points to when they are needed: language servers, several builders in one tree, staged verification and cheap swarms |
 | `skills/writing-briefs/` | The `agent-orchestration:writing-briefs` skill: the brief skeleton, the blocks to paste, how to treat a report |
+| `skills/writing-briefs/references/` | The brief templates and the Workflow-stage rules |
 | `agents/` | The agent types below |
 | `hooks/` | The hooks below, with a test file beside each script |
 | `references/language-servers.tsv` | The language servers the SessionStart check knows about |
@@ -46,8 +48,9 @@ Builders navigate with the language server. `references/language-servers.tsv` li
 
 | Event | Script | What it does |
 | --- | --- | --- |
-| SessionStart | `hooks/context.sh` | adds one line that tells the session to load the skills before it spawns anything |
+| SessionStart | `hooks/context.sh` | adds one line that tells the session to load the skills before it spawns anything; after a compaction, says the skills it loaded are already re-attached |
 | SessionStart, on startup | `hooks/lsp-check.sh` | names a language server the project needs and does not have; installs nothing |
+| SessionStart, on startup | `hooks/window-check.sh` | names a compaction window below 200K tokens in the settings or the environment; changes nothing |
 | SubagentStart, matcher `^agent-orchestration:builder-` | `hooks/context.sh` | puts the worker block into the context of the two builder types. The reader and the reviewers work from their own definitions; built-in agents such as Explore and Plan, and other plugins' agents, get nothing |
 | PreToolUse on Bash | `hooks/bash-output.sh` | in the main conversation only, refuses once a command whose text does not bound its output; the same command sent again runs. A subagent's Bash is never refused |
 | SessionEnd | `hooks/cleanup.sh` | removes the markers the Bash check left for that session |
@@ -132,6 +135,13 @@ Effort level names do not correspond to the same amount of thinking across model
 | Coverage first | Sonnet 5 prompting guide |
 | Reversibility | Prompting best practices |
 | Content from tools is data | Mitigate jailbreaks and prompt injections |
+
+### Compaction windows and re-attached skills
+
+Checked against the Claude Code documentation on 2026-10-13.
+
+- The compaction window comes from `autoCompactWindow` in the settings, per model under `modelSettings`, or from `CLAUDE_CODE_AUTO_COMPACT_WINDOW`; `hooks/window-check.sh` reads these. https://code.claude.com/docs/en/settings-reference#modelsettings and https://code.claude.com/docs/en/env-vars
+- After a compaction the invoked skill bodies are re-attached, capped at 5K tokens per skill, which is why `hooks/context.sh` tells the session not to load them again. https://code.claude.com/docs/en/context-window#what-survives-compaction
 
 ## License
 

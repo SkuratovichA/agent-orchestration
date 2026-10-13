@@ -1,0 +1,3 @@
+# Language servers
+
+Builders navigate with the `LSP` tool and treat the diagnostics that arrive after an edit as their first gate, which is why `builder-m` at `medium` is enough for most work. A language server needs its plugin enabled and its binary on PATH. `references/language-servers.tsv` at the plugin root lists, per project marker file, the language, the plugin, the binary and the install command. The plugin's SessionStart check (`hooks/lsp-check.sh`) adds one line to the session when the working directory has a marker and the binary is missing; it never installs anything. When that line appears, tell the user before the first builder spawn and install only on their go-ahead.

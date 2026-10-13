@@ -67,7 +67,7 @@ What a command prints into the main conversation is re-read on every later reque
 
 ## Language servers
 
-Builders navigate with the `LSP` tool and treat the diagnostics that arrive after an edit as their first gate, which is why `builder-m` at `medium` is enough for most work. A language server needs its plugin enabled and its binary on PATH. `references/language-servers.tsv` at the plugin root lists, per project marker file, the language, the plugin, the binary and the install command. The plugin's SessionStart check (`hooks/lsp-check.sh`) adds one line to the session when the working directory has a marker and the binary is missing; it never installs anything. When that line appears, tell the user before the first builder spawn and install only on their go-ahead.
+When the SessionStart check adds a line about a missing language server, tell the user before the first builder spawn and install only on their go-ahead. `references/language-servers.md` next to this file (`${CLAUDE_SKILL_DIR}/references/language-servers.md`) has the table, the plugins and the binaries.
 
 ## You are responsible for the output of anyone dumber than you
 
@@ -83,7 +83,7 @@ If you spawn a model weaker than yourself (e.g. you are Fable and you spawn Opus
 
 ## Writing the brief itself
 
-Load `agent-orchestration:writing-briefs` before writing the prompt for any spawned agent or Workflow stage, once this skill has fixed the model and effort. It carries the brief skeleton (verified loci, inlined context, scope as the deliverable, owned paths and authorised side effects, the proving command per claim, the output contract, the budget as a stop condition, the autonomy block), the Workflow-stage rules, and how to treat a report when it comes back. It names this skill's model table, command rules, turn limits and verification shapes instead of repeating them; its `references/brief-templates.md` holds the paste-able blocks and three filled-in briefs.
+Load `agent-orchestration:writing-briefs` before writing the prompt for any spawned agent or Workflow stage, once this skill has fixed the model and effort. It carries the brief skeleton (verified loci, inlined context, scope as the deliverable, owned paths and authorised side effects, the proving command per claim, the output contract, the budget as a stop condition, the autonomy block), the Workflow-stage rules in its references, and how to treat a report when it comes back. It names this skill's model table, command rules, turn limits and verification shapes instead of repeating them; its `references/brief-templates.md` holds the paste-able blocks and three filled-in briefs.
 
 ## Plan first; implementation never starts in the planning session
 
@@ -98,30 +98,11 @@ For any multi-file task the smart model writes the implementation plan — loci 
 
 ## Several builders in one tree
 
-Builders that run at the same time in one working tree share its files, its git index, its ports and its database. There are three levels, cheapest first. Pick the lowest that fits, and say which one in the plan.
+Before a second builder starts in the same working tree, read `references/several-builders.md` (`${CLAUDE_SKILL_DIR}/references/several-builders.md`). In short: non-overlapping file ownership in each brief is the default, a worktree per builder is only for paths that really overlap, and agent teams are for work that spans sessions; the plan names the level it picked.
 
-- **File ownership in the brief is the default.** Each builder's brief lists the paths it may change, and the lists do not overlap. A builder never stages, commits, reverts or reformats a file outside its list; a change it needs there goes into its report. A file two builders both need (a lockfile, a route table, a schema) has one owner, and the other's part of it waits. When a builder commits at all, it stages its own paths by name and never `git add -A`.
-- **A worktree per builder, only when the paths really overlap.** Pass `isolation: 'worktree'` on the spawn call, for example `Agent({ subagent_type: 'agent-orchestration:builder-m', isolation: 'worktree', prompt })`: the builder gets its own checkout and branch, and its work comes back as a branch to merge. The worktree is cut from the repository's default branch, not from your current `HEAD`, so anything that exists only on the current branch or uncommitted in the tree is not in it. It costs a merge afterwards and a dependency install per worktree, and it isolates nothing outside the tree: ports, databases and caches are still shared. It is opt-in; do not reach for it to be safe.
-- **Agent teams, for work that spans sessions or needs builders to talk to each other.** Claude Code's agent teams bring a shared task list, task claiming with a lock, and messages between teammates, and this plugin duplicates none of it. They are experimental and off until the user turns them on. A teammate gets the worker block from the hook only when it runs as one of this plugin's builder types; any other teammate that implements gets it pasted into its brief, and the rest of `writing-briefs` applies unchanged.
+## Fan-outs: staged verification and cheap swarms
 
-## Verification fan-outs are capped and staged
-
-Cap findings before verifying (`review.findings.slice(0, 5)`), and never run byte-identical duplicate skeptics in parallel — sampling noise is not verification. Run one skeptic; spend a second only on findings the first FAILED to refute:
-
-```js
-const v1 = await agent(refute(f), { ...SMART, schema: VERDICT });
-const v2 = v1.refuted ? null : await agent(refute(f), { ...SMART, schema: VERDICT });
-const survives = !v1.refuted && v2 && !v2.refuted;
-```
-
-## Cheap swarms are for grounded breadth; judgment stays smart
-
-- A wide `sonnet`/`haiku` fan-out is right when every claim can carry its own evidence — file:line, a verbatim quote, a command that proves it (call-site sweeps, checklist audits, per-file conformance checks, log characterization).
-- It is wrong for subtle analysis: one smart-model read beats ten cheap ones.
-- Anti-hallucination machinery that verifiably works: schema output with "empty is a valid answer — never invent to fill a quota", verbatim-evidence fields re-checked at verify time, refute-by-default skeptics (the staged v1/v2 above — cheap v1 first).
-- Prefer deterministic checks (a test run cannot hallucinate) over any model vote; stop fan-outs on marginal yield (2 dry rounds), never at a fixed headcount.
-- NO chatty multi-turn mutual checking between agents — it multiplies boot cost (the swarm's real cost floor) without adding ground truth.
-- Shape: find (cheap, evidence-carrying) → verify (staged skeptics) → synthesize (smart), as a DAG.
+Before a Workflow or a set of agents verifies findings or sweeps for breadth, read `references/fan-outs.md` (`${CLAUDE_SKILL_DIR}/references/fan-outs.md`). In short: cap the findings before verifying them, run one skeptic and a second only on what the first failed to refute, and use a cheap swarm only where every claim carries its own evidence.
 
 ## Your own session's budget
 
