@@ -80,7 +80,7 @@ If you spawn a model weaker than yourself (e.g. you are Fable and you spawn Opus
 - Don't hand an agent a vague goal and hope — hand it a verified fix locus (file:line), the constraints, the acceptance criteria, and the verification commands.
 - A spawned agent loads the same CLAUDE.md files you do, so a brief does not restate them. Inline only the lines this task turns on: a typing ban, a commit convention, a setup step before the tests.
 - Name the skills that govern the worker's files in the brief (a testing skill, a language style skill, …) and never restate them — the worker loads them itself, the brief stays short, and a restated skill is a stale one. This holds for every type this plugin ships: the builders, the reviewers and the reader all have the Skill tool. A type without it (one whose `tools` allowlist omits `Skill`) gets the paths of the `SKILL.md` files to Read instead.
-- When an installed plugin offers an agent type that preloads those skills (its `skills:` frontmatter — e.g. `<plugin>:python-implementer`), spawn that type instead of `general-purpose`, in `Agent` calls and as a workflow stage's `agentType` alike: the skill body is then in the worker's context before its first token, whatever the brief says.
+- When an installed plugin offers an agent type that preloads those skills (its `skills:` frontmatter), spawn that type instead of `general-purpose`, in `Agent` calls and as a workflow stage's `agentType` alike: the skill body is then in the worker's context before its first token, whatever the brief says.
 
 ## Writing the brief itself
 
