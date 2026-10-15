@@ -32,17 +32,17 @@ These are the plugin's defaults. A user's or a project's CLAUDE.md overrides the
 
 | Agent type | Model, effort | Turn limit | Tools | For |
 | --- | --- | --- | --- | --- |
-| `agent-orchestration:reader` | haiku, high | 15 | Bash, Read, Grep, Glob | reconnaissance: follows a lead over several steps and returns the answer or where it got stuck, never raw output |
+| `agent-orchestration:reader` | haiku, high | 15 | Bash, Read, Grep, Glob, LSP, Skill | reconnaissance: follows a lead over several steps and returns the answer or where it got stuck, never raw output |
 | `agent-orchestration:builder-m` | sonnet, medium | 40 | all | the default implementer: a brief that leaves no design question open |
 | `agent-orchestration:builder-l` | sonnet, xhigh | 40 | all | an implementation whose difficulty is in the design |
-| `agent-orchestration:reviewer` | sonnet, xhigh | 30 | Read, Grep, Glob | code review: correctness, reuse, tests, style |
-| `agent-orchestration:reviewer-arch` | opus, high | 30 | Read, Grep, Glob | architectural review, only on request or when the plan marks the change as architecture-level |
+| `agent-orchestration:reviewer` | sonnet, xhigh | 30 | Read, Grep, Glob, LSP, Skill | code review: correctness, reuse, tests, style |
+| `agent-orchestration:reviewer-arch` | opus, high | 30 | Read, Grep, Glob, LSP, Skill | architectural review, only on request or when the plan marks the change as architecture-level |
 
 `builder-m` is the default implementer; the orchestrator picks `builder-l` only when the difficulty is in the design. A `model` or `effort` passed on the spawn call raises any type when the user asks for it. Opus is spawned only through `reviewer-arch` or when the user names it.
 
-A builder runs its own tests, lint and type checks in its own shell with the log on disk, and sends a reader only on reconnaissance. A reviewer has no shell and no Agent tool, so it cannot change anything or start an agent that can: the orchestrator gives it the diff as a file. The reader and the reviewers also list `StructuredOutput`, which a Workflow stage needs to return a schema result.
+A builder runs its own tests, lint and type checks in its own shell with the log on disk, and sends a reader only on reconnaissance. A reviewer has no shell and no Agent tool, so it cannot change anything or start an agent that can: the orchestrator gives it the diff as a file. The reader and the reviewers also list `LSP`, `Skill` and `ToolSearch`, so they navigate with the language server and load the skills a brief names, and `StructuredOutput`, which a Workflow stage needs to return a schema result. They get no MCP tools: an allowlist can grant them only server by server, and most servers carry write tools.
 
-Builders navigate with the language server. `references/language-servers.tsv` lists the plugin, the binary and the install command per project marker file, and a SessionStart check names the one that is missing.
+Builders, reviewers and the reader navigate with the language server. `references/language-servers.tsv` lists the plugin, the binary and the install command per project marker file, and a SessionStart check names the one that is missing.
 
 ## Hooks
 
@@ -95,6 +95,7 @@ Checked against the Claude Code documentation on 2026-10-10 (version 2.1.296).
 - A subagent that reaches `maxTurns` is stopped, its output comes back marked as partial, and the parent can resume it.
 - `tools: Agent(type-a, type-b)` restricts spawning only for an agent run as the main thread with `claude --agent`. In a subagent's definition the list is ignored, which is why the reviewers here have no Agent tool at all.
 - A `tools` allowlist also decides whether an agent can return a schema result. Run as `claude -p --agent <type> --json-schema <schema>`, a type whose list lacked `StructuredOutput` returned none, and with the name in the list it did; without a schema the extra name changes nothing. A Workflow stage with a `schema` was not checked separately.
+- A subagent invokes project, user and plugin skills through the `Skill` tool whether or not `skills` preloads any; `skills` only decides what is in its context at startup. A `tools` allowlist that omits `Skill` shuts skills out, and one that omits the MCP tools shuts those out: `tools` takes `mcp__<server>` patterns but no wildcard for every server. A background subagent keeps `LSP`, `Skill` and `ToolSearch` (`LSP` only since 2.1.280). Checked on 2026-10-15. https://code.claude.com/docs/en/sub-agents
 - A subagent starts with a fresh context: its own body as the system prompt, plus the whole CLAUDE.md hierarchy the main conversation loads. It does not see the parent conversation, the skills the parent invoked or the parent's auto memory.
 - A subagent can spawn subagents of its own, up to three layers below the main conversation; `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` changes the limit.
 - `SubagentStart` matches on the agent type, which for a plugin agent is `plugin-name:agent-name`, and adds context only through JSON `additionalContext`. It also fires for an in-process agent-team teammate. Whether it fires for a Workflow stage is not documented; it did on 2.1.278.
