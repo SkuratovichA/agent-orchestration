@@ -28,6 +28,17 @@ check "all of them" absent s1.222
 check "another session's fresh marker stays" exists s2.333
 check "a marker older than a day is removed whatever its session" absent s3.444
 
+# The turn counters of turn-budget.sh sit in the same directory and go the same way.
+seed
+: > "$state/s1.turns.a1"; : > "$state/s1.turns.a2"; : > "$state/s2.turns.a1"; : > "$state/s3.turns.a1"
+touch -t 202001010000 "$state/s3.turns.a1"
+check "exit 0 and silent for a session end with counters" end '{"session_id":"s1","reason":"other"}'
+check "the ending session's counter of one agent is removed" absent s1.turns.a1
+check "and of another agent" absent s1.turns.a2
+check "another session's fresh counter stays" exists s2.turns.a1
+check "a counter older than a day is removed whatever its session" absent s3.turns.a1
+check "the markers go the same way" absent s1.111
+
 seed
 check "exit 0 and silent without session_id" end '{"reason":"other"}'
 check "no session_id removes nothing fresh" exists s1.111

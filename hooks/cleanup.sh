@@ -1,6 +1,7 @@
 #!/bin/sh
-# SessionEnd: removes the ending session's Bash-output markers, and any marker older than a day, which covers
-# sessions that ended without this hook running. Silent, and always exits 0.
+# SessionEnd: removes the ending session's files in the state directory, which are the Bash-output markers
+# and the turn counters (<session>.*), and any file older than a day, which covers sessions that ended without
+# this hook running. Silent, and always exits 0.
 . "$(dirname "$0")/lib.sh"
 command -v jq >/dev/null 2>&1 || exit 0
 session=$(cat | jq -r '.session_id // ""' 2>/dev/null)

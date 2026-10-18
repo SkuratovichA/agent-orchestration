@@ -9,5 +9,5 @@
 ```js
 const CMD = { model: 'haiku', effort: 'high', agentType: 'agent-orchestration:reader' }
 const JUDGE = { model: 'sonnet', effort: 'high', agentType: 'agent-orchestration:reviewer' }
-agent('Goal: say whether the suite is green, for a release gate.\nRun `cd /abs/repo || exit 1; pnpm test > /abs/scratch/t.log 2>&1; echo "exit=$?"`, then `grep -n -m 30 -A 15 -E "FAIL|Error" /abs/scratch/t.log` if it failed. Return the exit code, and for each failure the test name, expected and actual as printed, and the first stack frame in /abs/repo. Budget: 4 turns.', { ...CMD, schema: GATE })
+agent('Goal: say whether the suite is green, for a release gate.\nRun `cd /abs/repo || exit 1; pnpm test > /abs/scratch/t.log 2>&1; echo "exit=$?"`, then `grep -n -m 30 -A 15 -E "FAIL|Error" /abs/scratch/t.log` if it failed. Return the exit code, and for each failure the test name, expected and actual as printed, and the first stack frame in /abs/repo. Size: one command, and one grep if it failed.', { ...CMD, schema: GATE })
 ```

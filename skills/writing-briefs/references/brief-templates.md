@@ -110,7 +110,7 @@ Time matters here: do not spend time that can be avoided, and the earlier a corr
 
 ## Brief 1: a builder through the Agent tool
 
-Spawned as `agent-orchestration:builder-m`, so the model, the effort and the turn limit come from the definition and the worker block arrives through the hook.
+Spawned as `agent-orchestration:builder-m`, so the model, the effort and the fence come from the definition and the worker block arrives through the hook.
 
 ```text
 You are the implementer for this change.
@@ -142,7 +142,7 @@ Outcome first: one sentence. Then the files changed with line ranges, the three 
 
 <the Autonomy block>
 <the No-tidying block>
-Skills to load before the first edit: the skills that govern the files. Budget: 25 turns.
+Skills to load before the first edit: the skills that govern the files. Size: one handler and one pattern to read, one source file and its test to edit, three gates.
 ```
 
 ## Brief 2: a reader through the Agent tool
@@ -160,7 +160,7 @@ Playbook:
 - If a skip line names a function, read that function in its file with a line range and report the condition that skips.
 - If the skip lines carry order ids, `grep -c` those ids in /abs/example-service/logs/export-2026-01-14.log to see whether the previous run skipped them too.
 - If a commit from step 2 touches the file you read, run `git -C /abs/example-service show --stat <hash> | tail -8` on it.
-You may add other read-only steps toward the goal; nothing that changes anything. Anything longer than 40 lines goes to <the scratch path the orchestrator names>/export.txt and you return its line count instead. Budget: 12 turns; then stop and report.
+You may add other read-only steps toward the goal; nothing that changes anything. Anything longer than 40 lines goes to <the scratch path the orchestrator names>/export.txt and you return its line count instead. Size: two commands to start, then a few reads along the lead; nothing to edit and no gate.
 
 Your first line names the report. Answer: the skip condition with its `file:line`, the count of skipped orders, the commit that introduced the condition or "none found", each with the command that showed it, and "unverified" for anything you did not check. Stuck: what you were after, the steps you ran, where you stopped, what you saw there (the exact error line, or the shape of the data: keys, columns, three sample lines), and the one step you would take next.
 ```
@@ -178,9 +178,9 @@ const JUDGE = { model: 'sonnet', effort: 'high', agentType: 'agent-orchestration
 const GATE = { type: 'object', properties: { exit: { type: 'integer' }, log: { type: 'string' }, failures: { type: 'array', items: { type: 'object', properties: { test: { type: 'string' }, expected: { type: 'string' }, actual: { type: 'string' }, frame: { type: 'string' } }, required: ['test'] } } }, required: ['exit', 'log', 'failures'] }
 const FINDINGS = { type: 'object', properties: { findings: { type: 'array', items: { type: 'object', properties: { claim: { type: 'string' }, verbatim: { type: 'string' }, locus: { type: 'string' } }, required: ['claim', 'verbatim', 'locus'] } } }, required: ['findings'] }
 
-const gate = await agent('You are a Workflow stage and have no Agent tool.\nGoal: say whether the suite is green, for a release gate.\nRun `cd /abs/repo || exit 1; pnpm test > /abs/scratch/t.log 2>&1; echo "exit=$?"`, and if it failed `grep -n -m 30 -A 15 -E "FAIL|Error" /abs/scratch/t.log`. Return the exit code, the log path, and for each failure the test name, the expected and the actual value as the log prints them, and the first stack frame in /abs/repo. Call the structured-output tool exactly once, at the very end; an empty failures array is a valid answer. Budget: 4 turns.', { ...CMD, schema: GATE, label: 'gate:test' })
+const gate = await agent('You are a Workflow stage and have no Agent tool.\nGoal: say whether the suite is green, for a release gate.\nRun `cd /abs/repo || exit 1; pnpm test > /abs/scratch/t.log 2>&1; echo "exit=$?"`, and if it failed `grep -n -m 30 -A 15 -E "FAIL|Error" /abs/scratch/t.log`. Return the exit code, the log path, and for each failure the test name, the expected and the actual value as the log prints them, and the first stack frame in /abs/repo. Call the structured-output tool exactly once, at the very end; an empty failures array is a valid answer. Size: one command, and one grep if it failed.', { ...CMD, schema: GATE, label: 'gate:test' })
 
-const review = await agent('You are a Workflow stage and have no Agent tool.\nRead /abs/repo/src/report.ts lines 40-120 once. Report every issue you find, including ones you are uncertain about or consider low-severity; a separate verification step will filter. `verbatim` is an exact substring of the file; `locus` is `<path>:<line>`. Call the structured-output tool exactly once, at the very end, with your real content; an empty findings array is a valid answer. Budget: 4 turns.', { ...JUDGE, schema: FINDINGS, label: 'review:report' })
+const review = await agent('You are a Workflow stage and have no Agent tool.\nRead /abs/repo/src/report.ts lines 40-120 once. Report every issue you find, including ones you are uncertain about or consider low-severity; a separate verification step will filter. `verbatim` is an exact substring of the file; `locus` is `<path>:<line>`. Call the structured-output tool exactly once, at the very end, with your real content; an empty findings array is a valid answer. Size: one file, read once.', { ...JUDGE, schema: FINDINGS, label: 'review:report' })
 ```
 
 A stage that runs as `general-purpose` gets none of the plugin's rules on its own, and the documentation does not say the hook reaches a builder run as a stage, so the prompt of either opens with: "Read /abs/plugin/skills/agent-orchestration/references/worker-brief-block.md first; those are the rules you work under. You are a Workflow stage and have no Agent tool." Then one line saying whether it runs commands or only reads.

@@ -11,7 +11,7 @@ claude plugin install agent-orchestration@agent-orchestration
 
 The same from inside a session: `/plugin marketplace add SkuratovichA/agent-orchestration`, then `/plugin install agent-orchestration@agent-orchestration`. A new session then starts with the line "The agent-orchestration plugin is active".
 
-`jq` is optional. Without it the Bash-output check and the language-server check stay silent; the skills, the agents and the worker block work the same.
+`jq` is optional. Without it the Bash-output check, the turn note and the language-server check stay silent; the skills, the agents and the worker block work the same.
 
 ## What is in it
 
@@ -30,15 +30,15 @@ These are the plugin's defaults. A user's or a project's CLAUDE.md overrides the
 
 ## Agents
 
-| Agent type | Model, effort | Turn limit | Tools | For |
+| Agent type | Model, effort | Fence | Tools | For |
 | --- | --- | --- | --- | --- |
-| `agent-orchestration:reader` | haiku, high | 15 | Bash, Read, Grep, Glob, LSP, Skill | reconnaissance: follows a lead over several steps and returns the answer or where it got stuck, never raw output |
-| `agent-orchestration:builder-m` | sonnet, medium | 40 | all | the default implementer: a brief that leaves no design question open |
-| `agent-orchestration:builder-l` | sonnet, xhigh | 40 | all | an implementation whose difficulty is in the design |
-| `agent-orchestration:reviewer` | sonnet, xhigh | 30 | Read, Grep, Glob, LSP, Skill | code review: correctness, reuse, tests, style |
-| `agent-orchestration:reviewer-arch` | opus, high | 30 | Read, Grep, Glob, LSP, Skill | architectural review, only on request or when the plan marks the change as architecture-level |
+| `agent-orchestration:reader` | haiku, high | 60 | Bash, Read, Grep, Glob, LSP, Skill | reconnaissance: follows a lead over several steps and returns the answer or where it got stuck, never raw output |
+| `agent-orchestration:builder-m` | sonnet, medium | 180 | all | the default implementer: a brief that leaves no design question open |
+| `agent-orchestration:builder-l` | sonnet, xhigh | 250 | all | an implementation whose difficulty is in the design |
+| `agent-orchestration:reviewer` | sonnet, xhigh | 120 | Read, Grep, Glob, LSP, Skill | code review: correctness, reuse, tests, style |
+| `agent-orchestration:reviewer-arch` | opus, high | 120 | Read, Grep, Glob, LSP, Skill | architectural review, only on request or when the plan marks the change as architecture-level |
 
-`builder-m` is the default implementer; the orchestrator picks `builder-l` only when the difficulty is in the design. A `model` or `effort` passed on the spawn call raises any type when the user asks for it. Opus is spawned only through `reviewer-arch` or when the user names it.
+The fence is the agent's `maxTurns`: a runaway stop at about 3x the p99 of past runs, far above ordinary work, and no definition or brief states it. A run that hits it comes back marked partial and can be resumed. `builder-m` is the default implementer; the orchestrator picks `builder-l` only when the difficulty is in the design. A `model` or `effort` passed on the spawn call raises any type when the user asks for it. Opus is spawned only through `reviewer-arch` or when the user names it.
 
 A builder runs its own tests, lint and type checks in its own shell with the log on disk, and sends a reader only on reconnaissance. A reviewer has no shell and no Agent tool, so it cannot change anything or start an agent that can: the orchestrator gives it the diff as a file. The reader and the reviewers also list `LSP`, `Skill` and `ToolSearch`, so they navigate with the language server and load the skills a brief names, and `StructuredOutput`, which a Workflow stage needs to return a schema result. They get no MCP tools: an allowlist can grant them only server by server, and most servers carry write tools.
 
@@ -53,9 +53,10 @@ Builders, reviewers and the reader navigate with the language server. `reference
 | SessionStart, on startup | `hooks/window-check.sh` | names a compaction window below 200K tokens in the settings or the environment; changes nothing |
 | SubagentStart, matcher `^agent-orchestration:builder-` | `hooks/context.sh` | puts the worker block into the context of the two builder types. The reader and the reviewers work from their own definitions; built-in agents such as Explore and Plan, and other plugins' agents, get nothing |
 | PreToolUse on Bash | `hooks/bash-output.sh` | in the main conversation only, refuses once a command whose text does not bound its output; the same command sent again runs. A subagent's Bash is never refused |
-| SessionEnd | `hooks/cleanup.sh` | removes the markers the Bash check left for that session |
+| PostToolBatch | `hooks/turn-budget.sh` | inside a run of one of this plugin's agent types only, counts the tool rounds and, once, at 75% of that agent's `maxTurns` fence, adds a factual note: the count so far, where Claude Code stops the run, and that the parent can resume it. It reads the fence from the agent's frontmatter and orders nothing. Any other agent, and the main conversation, get nothing |
+| SessionEnd | `hooks/cleanup.sh` | removes the markers the Bash check and the counters the turn note left for that session |
 
-Every hook exits 0 whatever happens, so a broken hook never blocks a session. The Bash check keeps its markers in the plugin's data directory, never in a shared temp directory.
+Every hook exits 0 whatever happens, so a broken hook never blocks a session. The Bash check and the turn note keep their markers and counters in the plugin's data directory, never in a shared temp directory.
 
 ## Several builders in one tree
 
@@ -92,7 +93,8 @@ Checked against the Claude Code documentation on 2026-10-10 (version 2.1.296).
 
 - An agent file may set `name`, `description`, `tools`, `disallowedTools`, `model`, `effort`, `maxTurns`, `skills`, `memory`, `isolation`, `background`, `color` and `omitClaudeMd`. `hooks`, `mcpServers` and `permissionMode` are ignored in an agent that a plugin ships. https://code.claude.com/docs/en/sub-agents
 - `effort` takes `low`, `medium`, `high`, `xhigh` or `max` and overrides the session's effort; `model` takes `sonnet`, `opus`, `haiku`, `fable`, a full model id or `inherit`. A `model` or `effort` passed on the spawn call wins over the definition.
-- A subagent that reaches `maxTurns` is stopped, its output comes back marked as partial, and the parent can resume it.
+- `maxTurns` is the only per-subagent bound and there is no soft limit. A subagent that reaches it is stopped and its output comes back marked as partial; since 2.1.246 the parent can resume it with `SendMessage`, its context intact. Checked on 2026-10-18 (version 2.1.302). https://code.claude.com/docs/en/sub-agents
+- `PostToolBatch` fires inside a subagent once per tool round, with `agent_id` and `agent_type` in the payload (both absent in the main conversation), and may return `hookSpecificOutput.additionalContext`. The Claude Code docs ask for hook context written as factual statements rather than imperative instructions. Checked on 2026-10-18 (version 2.1.302; the payload by a recorded probe). https://code.claude.com/docs/en/hooks
 - `tools: Agent(type-a, type-b)` restricts spawning only for an agent run as the main thread with `claude --agent`. In a subagent's definition the list is ignored, which is why the reviewers here have no Agent tool at all.
 - A `tools` allowlist also decides whether an agent can return a schema result. Run as `claude -p --agent <type> --json-schema <schema>`, a type whose list lacked `StructuredOutput` returned none, and with the name in the list it did; without a schema the extra name changes nothing. A Workflow stage with a `schema` was not checked separately.
 - A subagent invokes project, user and plugin skills through the `Skill` tool whether or not `skills` preloads any; `skills` only decides what is in its context at startup. A `tools` allowlist that omits `Skill` shuts skills out, and one that omits the MCP tools shuts those out: `tools` takes `mcp__<server>` patterns but no wildcard for every server. A background subagent keeps `LSP`, `Skill` and `ToolSearch` (`LSP` only since 2.1.280). Checked on 2026-10-15. https://code.claude.com/docs/en/sub-agents
@@ -102,6 +104,17 @@ Checked against the Claude Code documentation on 2026-10-10 (version 2.1.296).
 - A `CLAUDE.md` at the plugin root is not loaded as context. Rules that must reach an agent ship as a skill or through the `SubagentStart` hook. https://code.claude.com/docs/en/plugins-reference
 - `CLAUDE_PLUGIN_DATA` is exported to a plugin's hook processes and survives plugin updates.
 
+### Where the fences come from
+
+Measured on 2026-10-18 over 3,169 subagent runs, a turn being one request. The plugin's own types had 20 to 44 runs each, so the p99 sits close to the maximum. The fence is about 3x the p99, and the turn note comes at 75% of it. `reviewer-arch` had no runs and takes the reviewer's fence. `hooks/fences.test.sh` pins the fences in the two tables above to the agents' frontmatter.
+
+| Type | Runs | p50 | p90 | p99 | Max | Fence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `reader` | 44 | 4 | 9 | 21 | 29 | 60 |
+| `reviewer` | 25 | 20 | 29 | 36 | 38 | 120 |
+| `builder-m` | 23 | 20 | 41 | 59 | 60 | 180 |
+| `builder-l` | 20 | 41 | 76 | 82 | 83 | 250 |
+
 ### Model notes
 
 Read from Anthropic's prompting guides in September and October 2026. A row is a model family named by its alias; the quotes are from that family's prompting page as it stood then.
@@ -109,7 +122,7 @@ Read from Anthropic's prompting guides in September and October 2026. A row is a
 | Model | Default that bites | What a brief adds | What a brief drops |
 | --- | --- | --- | --- |
 | `sonnet` | "interprets prompts literally and explicitly, particularly at lower effort levels. It does not silently generalize an instruction from one item to another, and it does not infer requests you didn't make." It also reaches for tools and self-verification loops readily. | The scope of every instruction ("apply this to every file in the list, not only the first"). For a finding stage, the Coverage-first block. | Stacked re-check instructions: name the one verification command. |
-| `haiku` | Summarises when asked to return long text word for word, and drops parts of a long report. | A goal, first commands with absolute paths, a playbook, a budget, and the two report shapes. Long content goes to a file and only its line count comes back. | `low` effort on anything but a probe, judgement calls, one spawn per command, exploration with no stated goal. |
+| `haiku` | Summarises when asked to return long text word for word, and drops parts of a long report. | A goal, first commands with absolute paths, a playbook, the size of the task, and the two report shapes. Long content goes to a file and only its line count comes back. | `low` effort on anything but a probe, judgement calls, one spawn per command, exploration with no stated goal. |
 | `opus` | Gets to work quickly on a loosely specified task, and ends some turns with text while work is still owed. | The Autonomy block and the Four-endings block. | Any sentence that tells it to explore broadly first: a complete brief replaces that exploration. |
 | `fable` | Writes fewer updates during long tool-calling turns, reaches for headers and lists less, and is more likely to rewrite a whole file than to make a targeted edit. | The report format spelled out, and the Surgical-edits block. | Anti-formatting rules written for older models. |
 
@@ -119,7 +132,7 @@ Effort level names do not correspond to the same amount of thinking across model
 
 - "Let Claude orchestrate naturally" against a fixed model per stage: the orchestrator decides the fan-out, and the brief says which spawns the worker may make.
 - "Explore broadly with tool calls" against resolving the context once and inlining it: the sentence is never pasted into a brief.
-- "Spend your entire output context" against a turn limit: the limit is a stop-and-report condition, and the fix for hitting it is a better-scoped brief.
+- "Spend your entire output context" against a fence: the fence is a runaway stop that nothing announces, and the fix for hitting it is a better-scoped brief. A brief never tells an agent to spend its whole context, and never states a turn budget, because a model told a tight budget "may decline to attempt the task at all, scope it down aggressively, or stop early" (Anthropic's task-budgets guide, read on 2026-10-18).
 - "Use a more capable model for high-stakes reviews" against Opus being reserved for the session: the session model does the high-stakes review itself, and a spawned reviewer stays on Sonnet unless the user raises it by name.
 - Any model's default verbosity against fixed report shapes: every brief states the shape.
 
