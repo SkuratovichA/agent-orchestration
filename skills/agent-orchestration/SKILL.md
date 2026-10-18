@@ -33,20 +33,20 @@ These are this plugin's defaults. The user's and the project's CLAUDE.md overrid
 
 ## The agent types this plugin ships
 
-Spawn these instead of `general-purpose` when the stage fits. Model, effort and the turn limit are pinned in each definition, and so are the tools of the reader and the reviewers, so nothing is inherited from the session by accident.
+Spawn these instead of `general-purpose` when the stage fits. Model, effort and the fence are pinned in each definition, and so are the tools of the reader and the reviewers, so nothing is inherited from the session by accident.
 
-| Agent type | Model, effort | Turn limit | Spawn it for |
+| Agent type | Model, effort | Fence | Spawn it for |
 | --- | --- | --- | --- |
-| `agent-orchestration:reader` | `haiku`, `high` | 15 | reconnaissance: given a goal, the first commands and what it may do next, it follows the lead over several steps and returns the answer, or exactly where it got stuck. Not for a one-liner whose output is known to be small |
-| `agent-orchestration:builder-m` | `sonnet`, `medium` | 40 | the default implementer: any change whose brief leaves no design question open |
-| `agent-orchestration:builder-l` | `sonnet`, `xhigh` | 40 | an implementation whose difficulty is in the design: several modules, a migration, concurrency or state, a contract other code depends on |
-| `agent-orchestration:reviewer` | `sonnet`, `xhigh` | 30 | review of a diff for correctness, reuse, tests and style; it has no shell and cannot edit |
-| `agent-orchestration:reviewer-arch` | `opus`, `high` | 30 | architectural review, only when the user asks for it or the plan marks the change as architecture-level; it has no shell and cannot edit |
+| `agent-orchestration:reader` | `haiku`, `high` | 60 | reconnaissance: given a goal, the first commands and what it may do next, it follows the lead over several steps and returns the answer, or exactly where it got stuck. Not for a one-liner whose output is known to be small |
+| `agent-orchestration:builder-m` | `sonnet`, `medium` | 180 | the default implementer: any change whose brief leaves no design question open |
+| `agent-orchestration:builder-l` | `sonnet`, `xhigh` | 250 | an implementation whose difficulty is in the design: several modules, a migration, concurrency or state, a contract other code depends on |
+| `agent-orchestration:reviewer` | `sonnet`, `xhigh` | 120 | review of a diff for correctness, reuse, tests and style; it has no shell and cannot edit |
+| `agent-orchestration:reviewer-arch` | `opus`, `high` | 120 | architectural review, only when the user asks for it or the plan marks the change as architecture-level; it has no shell and cannot edit |
 
 - **Judge the difficulty before you spawn an implementer**, and say which one you chose and why in a clause. `builder-m` is the default: the brief leaves no design question open. If the worker would still have to decide how modules, data or concurrent actors fit together, it is `builder-l`. When you cannot tell, split the task until each part is a `builder-m` task.
 - `opus` is spawned only through `reviewer-arch`, or when the user names it for a specific agent. A code review is `reviewer`; an architectural one asks what the change does to code that lives somewhere else, and that is the question worth the stronger model.
 - **The user can raise any type.** A definition fixes the role, the tools and the body; `model` and `effort` passed on the `Agent` call win over it. When the user asks for a smarter model for a piece of work, spawn the type that fits the difficulty with their model, for example `Agent({ subagent_type: 'agent-orchestration:builder-l', model: 'opus', prompt })`, and say in the brief that the user asked. Never raise one on your own judgement: when a plan marks a change as mission-critical and the user has named no model, say so in the plan and let them choose. The same call-level `model: 'sonnet'` gives a `reader` whose filtering needs judgement.
-- **The turn limit is enforced by the harness, not by the agent's goodwill.** An agent that reaches it is stopped where it stands, and what it has comes back marked as partial. You can resume it, but a task that will not fit is better split before the spawn, and a brief names a smaller budget when the task needs less.
+- **`maxTurns` is a runaway fence, not a budget.** Each fence is about 3x the p99 of the turns that past runs of the type took (measured on 2026-10-18 over 3,169 subagent runs), so ordinary work never nears it; `reviewer-arch` had no runs and takes the reviewer's. The `PostToolBatch` hook (`hooks/turn-budget.sh`) adds one factual note to the agent's context at 75% of the fence. A run that reaches the fence is stopped where it stands and its output comes back marked partial; you can resume it with `SendMessage`, its context intact (Claude Code 2.1.246 and later). No definition and no brief states a turn number, because a model told a tight budget may decline the task, scope it down or stop early: a brief sizes the task instead (`agent-orchestration:writing-briefs`, item 11).
 - **A reviewer reads; it does not run.** Write the diff to a file before the spawn (`git diff main...HEAD > <scratch>/change.diff`) and give the reviewer that path with the intent of the change. It searches the tree with the language server, Grep and Glob on its own, and loads the skills the brief names with the Skill tool: name the team's review or style skill for the files in the diff (a Python style skill, a testing skill) the same way you would for a builder.
 - **No MCP tools in the reader or the reviewers, by design.** Their allowlist cannot grant MCP tools without naming each server, and most servers carry write tools (send a message, create a page), which would break the rule that a reading stage cannot change anything. Fetch what they need from an issue tracker or a wiki yourself, field-selected, and put it in the brief. Builders have no allowlist and inherit the session's MCP tools.
 
@@ -84,7 +84,7 @@ If you spawn a model weaker than yourself (e.g. you are Fable and you spawn Opus
 
 ## Writing the brief itself
 
-Load `agent-orchestration:writing-briefs` before writing the prompt for any spawned agent or Workflow stage, once this skill has fixed the model and effort. It carries the brief skeleton (verified loci, inlined context, scope as the deliverable, owned paths and authorised side effects, the proving command per claim, the output contract, the budget as a stop condition, the autonomy block), the Workflow-stage rules in its references, and how to treat a report when it comes back. It names this skill's model table, command rules, turn limits and verification shapes instead of repeating them; its `references/brief-templates.md` holds the paste-able blocks and three filled-in briefs.
+Load `agent-orchestration:writing-briefs` before writing the prompt for any spawned agent or Workflow stage, once this skill has fixed the model and effort. It carries the brief skeleton (verified loci, inlined context, scope as the deliverable, owned paths and authorised side effects, the proving command per claim, the output contract, the task's size, the autonomy block), the Workflow-stage rules in its references, and how to treat a report when it comes back. It names this skill's model table, command rules, fences and verification shapes instead of repeating them; its `references/brief-templates.md` holds the paste-able blocks and three filled-in briefs.
 
 ## Plan first; implementation never starts in the planning session
 
