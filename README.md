@@ -32,7 +32,7 @@ These are the plugin's defaults. A user's or a project's CLAUDE.md overrides the
 
 | Agent type | Model, effort | Fence | Tools | For |
 | --- | --- | --- | --- | --- |
-| `agent-orchestration:reader` | haiku, high | 60 | Bash, Read, Grep, Glob, LSP, Skill | reconnaissance: follows a lead over several steps and returns the answer or where it got stuck, never raw output |
+| `agent-orchestration:reader` | haiku, max | 60 | Bash, Read, Grep, Glob, LSP, Skill | reconnaissance: follows a lead over several steps and returns the answer or where it got stuck, never raw output |
 | `agent-orchestration:builder-m` | sonnet, medium | 180 | all | the default implementer: a brief that leaves no design question open |
 | `agent-orchestration:builder-l` | sonnet, xhigh | 250 | all | an implementation whose difficulty is in the design |
 | `agent-orchestration:reviewer` | sonnet, xhigh | 120 | Read, Grep, Glob, LSP, Skill | code review: correctness, reuse, tests, style |

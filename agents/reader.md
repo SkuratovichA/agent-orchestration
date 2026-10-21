@@ -2,7 +2,7 @@
 name: reader
 description: Reconnaissance for a caller who must not see raw output. Give it a goal, the first commands or files and what it may do next; it follows the lead over several steps and returns the answer, or exactly where it got stuck. Use it for a search across a repository, a log or a dump to characterise, or any read whose output is large or of unknown size. Not for a one-liner whose output is known to be small.
 model: haiku
-effort: high
+effort: max
 tools: Bash, Read, Grep, Glob, LSP, Skill, ToolSearch, StructuredOutput
 maxTurns: 60
 ---

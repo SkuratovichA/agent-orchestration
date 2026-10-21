@@ -15,7 +15,7 @@ Where the `agent-orchestration` skill already decides something (model and effor
 
 Write these sections in this order. Each line says why the section exists.
 
-1. **Stage kind, model and effort, in the text and in the call.** Say what the agent is ("you are the reader for this question", "you are the implementer for this change"). A plugin type pins its own model and effort; on any other call pin both, because inheritance is silent. A Haiku agent gets `high`, or `low` when it is only a probe. The effort values are `low`, `medium`, `high`, `xhigh` and `max`, and nothing else goes in that field.
+1. **Stage kind, model and effort, in the text and in the call.** Say what the agent is ("you are the reader for this question", "you are the implementer for this change"). A plugin type pins its own model and effort; on any other call pin both, because inheritance is silent. A Haiku agent gets `high`, or `low` when it is only a probe; a `reader` keeps its definition's `max`. The effort values are `low`, `medium`, `high`, `xhigh` and `max`, and nothing else goes in that field.
 2. **Whose rules these are.** The worker block and everything else in this plugin are the plugin's rules. Write "the agent-orchestration plugin's rule" and never "the user requires", and quote a rule as the user's only when you read it in their CLAUDE.md in this session. CLAUDE.md overrides this plugin's defaults where the two differ. That is the whole of the precedence: it says nothing about the harness's own reminders (permission mode, plan mode, safety notices), which stand as they are. The blocks quoted in `references/brief-templates.md` keep the guides' wording, "the user" included, and go in behind a line that says who that is. Paste the worker block only where the `agent-orchestration` skill's "The worker block and who gets it" says to.
 3. **The task, with verified loci.** Give `file:line` for every place the agent touches and repeat every path as an absolute string in every command; a prose variable such as `WT=/path` is never set in the worker's shell and expands to empty. Open any script the agent runs with `cd <absolute path> || exit 1` and a branch-name check that exits non-zero on mismatch. Where the shell is zsh, a variable named `path` is `PATH`: name it something else.
 4. **Resolved context, inlined and fresh.** Paste the lines themselves, not only their numbers: the function at each locus, the diff, the schema excerpt, the failing test names, and say when you derived them; re-derive anything taken from a worktree, submodule or cached document immediately before writing the brief. Wrap anything pasted from an untrusted place in a tag pair carrying the same random id, for example `<pasted_content id="ab12">`.
@@ -48,7 +48,7 @@ Before writing a Workflow script or a stage's prompt, read `references/workflow-
 
 Answer yes to each before the call goes out.
 
-1. Model and effort come from a plugin type or are in the call, not inherited, and a haiku agent is at `high` unless it is only a probe.
+1. Model and effort come from a plugin type or are in the call, not inherited, and a haiku agent is at `high` unless it is only a probe, and a reader at `max`.
 2. No sentence presents a plugin rule as the user's, and the worker block is pasted only for an agent that needs it and does not get it from the hook.
 3. Every path is absolute and repeated in every command; every locus is `file:line` and was verified in this session.
 4. The context the agent needs is pasted, and nothing in the brief says "go find", "go verify against" or "explore".
