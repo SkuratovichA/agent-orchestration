@@ -1,0 +1,6 @@
+# agent	turn limit
+reader	60
+builder-m	360
+builder-l	500
+reviewer	120
+reviewer-arch	120

@@ -1,0 +1,19 @@
+{
+  "session_id": "051569a2-625c-409f-8bbf-f3f1c98ba867",
+  "transcript_path": "/abs/transcript.jsonl",
+  "cwd": "/abs/cwd",
+  "prompt_id": "0276cfb1-6343-4b32-a439-099cc9ea6d0d",
+  "permission_mode": "auto",
+  "agent_id": "aad7b1cbce0f7c091",
+  "agent_type": "general-purpose",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "echo one",
+    "description": "Print \"one\" to stdout"
+  },
+  "tool_use_id": "toolu_016ALDvzTzxAwT3bp1Phr7j6"
+}

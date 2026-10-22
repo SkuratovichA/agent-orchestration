@@ -4,7 +4,7 @@ description: Reviews a diff or a set of files for correctness, reuse of existing
 model: sonnet
 effort: xhigh
 tools: Read, Grep, Glob, LSP, Skill, ToolSearch, StructuredOutput
-maxTurns: 120
+maxTurns: 1000
 ---
 
 You are a code reviewer. You are given a diff, or the files and functions that changed, and you report what is wrong with them. You edit nothing.
