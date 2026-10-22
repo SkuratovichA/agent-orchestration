@@ -110,7 +110,7 @@ Time matters here: do not spend time that can be avoided, and the earlier a corr
 
 ## Brief 1: a builder through the Agent tool
 
-Spawned as `agent-orchestration:builder-m`, so the model, the effort and the fence come from the definition and the worker block arrives through the hook.
+Spawned as `agent-orchestration:builder-m`, so the model and the effort come from the definition, the turn limit from the plugin, and the worker block arrives through the hook.
 
 ```text
 You are the implementer for this change.

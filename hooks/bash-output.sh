@@ -85,7 +85,7 @@ quiet() {
   case "$1" in *'|'*|*'$('*|*'`'*) return 1 ;; esac
   set -- $1
   case "$1" in
-    echo|printf|true|:|pwd|cd|test|'['|mkdir|touch|wc) return 0 ;;
+    echo|printf|true|:|pwd|cd|test|'['|mkdir|touch|wc|agent-turns) return 0 ;;
     git)
       shift
       while [ "$1" = -C ] && [ $# -ge 2 ]; do shift 2; done

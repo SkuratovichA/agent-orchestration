@@ -1,0 +1,148 @@
+#!/bin/sh
+# Shows and changes the turn limits of this plugin's subagent runs in the current session. hooks/turn-budget.sh enforces the limit and reads it again on every tool call, so a change takes effect on the run's next call. Run it from the Bash tool of the session that spawned the runs; the session comes from CLAUDE_CODE_SESSION_ID.
+root=$(cd "$(dirname "$0")/.." && pwd)
+. "$root/hooks/lib.sh"
+sub=agent-orchestration-bash-output
+tab=$(printf '\t')
+
+usage() {
+  cat <<'USAGE'
+usage: agent-turns                           list the runs of this session: id, type, rounds, limit, source
+       agent-turns <agent-id>                show one run
+       agent-turns <agent-id> <turns>        set the limit of one run
+       agent-turns <agent-id> default        remove the limit of one run
+       agent-turns --type <type>             show the limit of an agent type in this session
+       agent-turns --type <type> <turns>     set the limit of an agent type in this session
+       agent-turns --type <type> default     remove it
+<type> is builder-m or agent-orchestration:builder-m. <turns> is a positive integer. The source of a limit is run (set for the run), session (set for its type in this session) or default (references/turn-limits.tsv); - means none. A limit of the type applies to the running and the later runs of the type that have no limit of their own. A limit above the frontmatter maxTurns of the agent has no effect, because Claude Code stops the run there.
+USAGE
+}
+fail() { # status message...
+  status=$1; shift
+  printf 'agent-turns: %s\n' "$*" >&2
+  exit "$status"
+}
+bad_usage() {
+  printf 'agent-turns: %s\n' "$*" >&2
+  usage >&2
+  exit 2
+}
+
+case "$1" in
+  -h|--help) usage; exit 0 ;;
+esac
+
+session=$CLAUDE_CODE_SESSION_ID
+case "$session" in
+  '') fail 1 'CLAUDE_CODE_SESSION_ID is not set; run this from the Bash tool of the session' ;;
+  *[!A-Za-z0-9_-]*) fail 1 'CLAUDE_CODE_SESSION_ID is not a safe session id' ;;
+esac
+
+# The state directory of this session: the first candidate that holds the session marker, failing that the first that holds any file of the session.
+holds() { # directory mode; a real directory of the user that holds the marker (mode marker) or any file of the session
+  [ -d "$1" ] && [ ! -L "$1" ] && [ -O "$1" ] || return 1
+  if [ "$2" = marker ]; then [ -e "$1/$session.session" ]; return; fi
+  for f in "$1/$session".*; do [ -e "$f" ] && return 0; done
+  return 1
+}
+find_dir() {
+  for mode in marker any; do
+    for d in "${CLAUDE_PLUGIN_DATA:+$CLAUDE_PLUGIN_DATA/$sub}" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/data/*/"$sub" "${XDG_RUNTIME_DIR:+$XDG_RUNTIME_DIR/$sub}" "${TMPDIR:+$TMPDIR/$sub}"; do
+      if [ -n "$d" ] && holds "$d" "$mode"; then printf '%s\n' "$d"; return 0; fi
+    done
+  done
+  return 1
+}
+dir=$(find_dir) || fail 1 "no state directory of the agent-orchestration plugin holds files of session $session"
+
+safe_id() { # value; a part of a file name
+  case "$1" in
+    ''|*[!A-Za-z0-9_-]*) return 1 ;;
+  esac
+}
+counter_of() { # agent id; sets rounds and type from the counter of the run, "-" when it has none or an old one has no type
+  rounds=0
+  type=-
+  if [ -f "$dir/$session.turns.$1" ]; then
+    read -r rounds name < "$dir/$session.turns.$1"
+    if positive_int "$rounds"; then rounds=$int; else rounds=0; fi
+    if safe_id "$name"; then type=$name; fi
+  fi
+}
+row_of() { # agent id; one tab-separated line: id, type, rounds, limit, source
+  counter_of "$1"
+  limit=-
+  source=-
+  if [ "$type" = - ]; then known=; else known=$type; fi
+  if got=$(turn_limit "$root" "$dir" "$session" "$1" "$known"); then limit=${got% *}; source=${got#* }; fi
+  printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$type" "$rounds" "$limit" "$source"
+}
+table() { # stdin: tab-separated rows; the header line comes as the argument, tab-separated
+  { printf '%s\n' "$1"; cat; } | awk -F'\t' '
+    { for (i = 1; i <= NF; i++) { cell[NR, i] = $i; if (length($i) > width[i]) width[i] = length($i) } cols = NF }
+    END {
+      for (r = 1; r <= NR; r++) {
+        line = ""
+        for (i = 1; i <= cols; i++) line = line (i < cols ? sprintf("%-" (width[i] + 2) "s", cell[r, i]) : cell[r, i])
+        print line
+      }
+    }'
+}
+show_run() { row_of "$1" | table "AGENT${tab}TYPE${tab}ROUNDS${tab}LIMIT${tab}SOURCE"; }
+ceiling_warning() { # type name, turns; warns on stderr when the turns are above the maxTurns of the agent
+  if ceiling=$(max_turns "$root" "$1") && [ "$2" -gt "$ceiling" ]; then
+    printf "agent-turns: %s is above %s's maxTurns of %s; Claude Code stops the run there whatever this limit says.\n" "$2" "$1" "$ceiling" >&2
+  fi
+}
+# Writes the file whole, so that a hook that reads it meanwhile never sees it half written.
+write_limit() { # file value
+  printf '%s\n' "$2" > "$1.$$" && mv -f "$1.$$" "$1" || { rm -f "$1.$$"; fail 1 "cannot write $1"; }
+}
+
+if [ "$1" = --type ]; then
+  [ $# -ge 2 ] && [ $# -le 3 ] || bad_usage '--type takes an agent type and at most one more argument'
+  name=${2#agent-orchestration:}
+  safe_id "$name" && [ -f "$root/agents/$name.md" ] || fail 1 "unknown agent type $2: it must name an agent of this plugin"
+  file="$dir/$session.typelimit.$name"
+  if [ $# -eq 3 ]; then
+    if [ "$3" = default ]; then
+      rm -f "$file"
+    else
+      positive_int "$3" || bad_usage "$3 is neither a positive integer nor default"
+      turns=$int
+      write_limit "$file" "$turns"
+      ceiling_warning "$name" "$turns"
+    fi
+  fi
+  if got=$(turn_limit "$root" "$dir" "$session" '' "$name"); then limit=${got% *}; source=${got#* }; else limit=-; source=-; fi
+  printf '%s\t%s\t%s\n' "$name" "$limit" "$source" | table "TYPE${tab}LIMIT${tab}SOURCE"
+  exit 0
+fi
+
+case "$1" in
+  '')
+    [ $# -eq 0 ] || bad_usage 'the agent id is empty'
+    for f in "$dir/$session".turns.*; do
+      [ -f "$f" ] || continue
+      row_of "${f#"$dir/$session.turns."}"
+    done | table "AGENT${tab}TYPE${tab}ROUNDS${tab}LIMIT${tab}SOURCE"
+    exit 0
+    ;;
+  -*) bad_usage "unknown option $1" ;;
+esac
+[ $# -le 2 ] || bad_usage 'too many arguments'
+safe_id "$1" || bad_usage "$1 is not an agent id"
+agent=$1
+file="$dir/$session.limit.$agent"
+if [ $# -eq 2 ]; then
+  if [ "$2" = default ]; then
+    rm -f "$file"
+  else
+    positive_int "$2" || bad_usage "$2 is neither a positive integer nor default"
+    turns=$int
+    write_limit "$file" "$turns"
+    counter_of "$agent"
+    [ "$type" = - ] || ceiling_warning "$type" "$turns"
+  fi
+fi
+show_run "$agent"

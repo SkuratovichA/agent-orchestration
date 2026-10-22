@@ -16,6 +16,19 @@ case "$event" in
     else
       source=$(printf '%s\n' "$input" | sed -n 's/.*"source"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | sed 1q)
     fi
+    # The empty marker <session>.session tells bin/agent-turns which state directory holds this session's files; the Bash tool does not see CLAUDE_PLUGIN_DATA. Writing it again on resume, clear and compact keeps its age fresh.
+    if command -v jq >/dev/null 2>&1; then
+      session=$(printf '%s' "$input" | jq -r '.session_id | select(type == "string")' 2>/dev/null)
+    else
+      session=$(printf '%s\n' "$input" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | sed 1q)
+    fi
+    case "$session" in
+      ''|*[!A-Za-z0-9_-]*) ;;
+      *)
+        . "$(dirname "$0")/lib.sh"
+        if dir=$(state_dir 2>/dev/null); then printf '' 2>/dev/null > "$dir/$session.session"; fi
+        ;;
+    esac
     if [ "$source" = compact ]; then
       printf '%s\n' 'The agent-orchestration skills you loaded before this compaction are re-attached in this context, so do not load them again, and re-read one of their references only for a section you need now and do not have. If you had not loaded them, load agent-orchestration:agent-orchestration before spawning a subagent or a Workflow stage, and agent-orchestration:writing-briefs before writing a brief.'
       exit 0
