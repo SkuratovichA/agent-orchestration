@@ -123,13 +123,37 @@ last_statement() {
   printf '%s' "$1" | sed -E 's/.*(;|&&|\|\|)//'
 }
 
-# Quoted text is replaced by a placeholder first, so a | ; or > inside quotes is not read as shell syntax. A
-# double-quoted string that holds $ or a backtick stays as it is, because a substitution inside it can print.
-text=$(printf '%s' "$command" | sed -E "s/'[^']*'|\"[^\"\$\`]*\"/Q/g")
+# Quoted text is replaced by a placeholder first, so a | ; or > inside quotes is not read as shell syntax. Quotes
+# are paired from the left, one string at a time. A double-quoted string that holds a command substitution
+# becomes $(Q), because what it prints is not known; any other string becomes Q.
+text=$(printf '%s' "$command" | awk '{
+  out = ""
+  n = length($0)
+  i = 1
+  while (i <= n) {
+    c = substr($0, i, 1)
+    if (c == "\\") { out = out substr($0, i, 2); i += 2; continue }
+    if (c == "\047") {
+      j = index(substr($0, i + 1), "\047")
+      if (j == 0) { out = out substr($0, i); break }
+      out = out "Q"; i += j + 1; continue
+    }
+    if (c == "\"") {
+      j = i + 1
+      while (j <= n && substr($0, j, 1) != "\"") j += (substr($0, j, 1) == "\\") ? 2 : 1
+      if (j > n) { out = out substr($0, i); break }
+      s = substr($0, i, j - i + 1)
+      out = out ((index(s, "$(") > 0 || index(s, "`") > 0) ? "$(Q)" : "Q")
+      i = j + 1; continue
+    }
+    out = out c; i++
+  }
+  printf "%s", out
+}')
 
 # Looked at from the end: an empty text, a cap or a file at the end passes; a quiet last statement is dropped
-# with its separator and the rest is looked at again; anything else is refused. Escaped quotes and here-documents
-# are not parsed, since a wrong refusal costs one resend.
+# with its separator and the rest is looked at again; anything else is refused. Here-documents are not parsed,
+# since a wrong refusal costs one resend.
 while :; do
   text=$(printf '%s' "$text" | sed -E 's/^([[:space:]]|;)+//; s/([[:space:];]|&&|\|\|)+$//')
   [ -n "$text" ] || exit 0

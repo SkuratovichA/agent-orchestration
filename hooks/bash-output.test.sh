@@ -71,6 +71,11 @@ expect pass "cut after a capped stage" s1 "" false 'cat notes.txt | head -n 5 | 
 expect pass "cut after grep -m" s1 "" false 'grep -n -m 20 TODO /abs/min.js | cut -c1-300'
 expect deny "cut alone" s1 "" false 'cut -c1-300 big.txt'
 expect pass "stdout and stderr to two files" s1 "" false 'pnpm build > /tmp/out.log 2> /tmp/err.log'
+expect pass "a variable in quotes before other quoted strings" s1 "" false 'mkdir -p "$S/lsp"; { git status --short; echo "=== a"; } > "$S/f.txt" 2>&1; head -c 9000 "$S/f.txt"'
+expect deny "quotes pair from the left, so the text between two strings is still read" s1 "" false 'echo "$S/x"; git log --format="%h"'
+expect pass "an apostrophe inside double quotes" s1 "" false "echo \"it's done\""
+expect deny "an apostrophe inside double quotes, then an unbounded statement" s1 "" false "echo \"it's\"; cat big.log; echo 'x'"
+expect pass "an escaped quote inside double quotes" s1 "" false 'printf "%s\n" "a \" b | c" | head -3'
 
 decision() { jq -r '.hookSpecificOutput.permissionDecision // "pass"'; }
 state="$CLAUDE_PLUGIN_DATA/agent-orchestration-bash-output"
