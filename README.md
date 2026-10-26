@@ -52,14 +52,14 @@ Every agent's `maxTurns` is 1000, Claude Code's own hard stop, which nothing mov
 
 A builder runs its own tests, lint and type checks in its own shell with the log on disk, and sends a reader only on reconnaissance. A reviewer has no shell and no Agent tool, so it cannot change anything or start an agent that can: the orchestrator gives it the diff as a file. The reader and the reviewers also list `LSP`, `Skill` and `ToolSearch`, so they navigate with the language server and load the skills a brief names, and `StructuredOutput`, which a Workflow stage needs to return a schema result. They get no MCP tools: an allowlist can grant them only server by server, and most servers carry write tools.
 
-Builders, reviewers and the reader navigate with the language server. `references/language-servers.tsv` lists the plugin, the binary and the install command per project marker file, and a SessionStart check names the one that is missing.
+Builders, reviewers and the reader navigate with the language server; the builders also treat its diagnostics as their first gate. `references/language-servers.tsv` lists the plugin, the binary and the install command per project marker file, and a SessionStart check names a server that is missing when a marker file sits in the working directory or up to two levels below it.
 
 ## Hooks
 
 | Event | Script | What it does |
 | --- | --- | --- |
 | SessionStart | `hooks/context.sh` | adds one line that tells the session to load the skills before it spawns anything; after a compaction, says the skills it loaded are already re-attached. Leaves a marker for the session in the plugin's data directory, where `agent-turns` finds the turn counters |
-| SessionStart, on startup | `hooks/lsp-check.sh` | names a language server the project needs and does not have; installs nothing |
+| SessionStart, on startup | `hooks/lsp-check.sh` | names a language server the project needs and does not have, unless its plugin is switched off in the settings; installs nothing |
 | SessionStart, on startup | `hooks/window-check.sh` | names a compaction window below 200K tokens in the settings or the environment; changes nothing |
 | SubagentStart, matcher `^agent-orchestration:builder-` | `hooks/context.sh` | puts the worker block into the context of the two builder types. The reader and the reviewers work from their own definitions; built-in agents such as Explore and Plan, and other plugins' agents, get nothing |
 | PreToolUse on Bash | `hooks/bash-output.sh` | in the main conversation only, refuses once a command whose text does not bound its output; the same command sent again runs. A subagent's Bash is never refused |
@@ -116,6 +116,14 @@ Checked against the Claude Code documentation on 2026-10-10 (version 2.1.296).
 - `SubagentStart` matches on the agent type, which for a plugin agent is `plugin-name:agent-name`, and adds context only through JSON `additionalContext`. It also fires for an in-process agent-team teammate. Whether it fires for a Workflow stage is not documented; it did on 2.1.278.
 - A `CLAUDE.md` at the plugin root is not loaded as context. Rules that must reach an agent ship as a skill or through the `SubagentStart` hook. https://code.claude.com/docs/en/plugins-reference
 - `CLAUDE_PLUGIN_DATA` is exported to a plugin's hook processes and survives plugin updates. It is not exported to the Bash tool's commands, which do carry `CLAUDE_CODE_SESSION_ID` (the hooks' `session_id`, in the main conversation and in its subagents alike) and `CLAUDE_CONFIG_DIR`; that is why `agent-turns` finds the plugin's data directory through the marker SessionStart leaves there. A plugin's `bin/` directory is on the Bash tool's PATH while the plugin is enabled. Checked on 2026-10-22 (version 2.1.308) with a probe plugin.
+
+### Language servers
+
+Checked on 2026-10-12 (Claude Code 2.1.296, typescript-language-server 6.0.2).
+
+- An agent whose `tools` is an allowlist has the `LSP` tool only when the list names it.
+- The first `findReferences` after a server starts can miss files: on a two-file project the first call returned the references in one file and the second call all of them. The agents therefore ask twice and back "nothing else uses this" with a search.
+- `typescript-language-server` drives `tsserver`, and the `typescript` package stopped shipping it in 7.0. With TypeScript 7 as the only one it can find, the server stops at start-up with "Could not find a valid TypeScript installation", which is why the install command pins `typescript@6`. In a project that itself uses TypeScript 7 the server falls back to the global TypeScript 6 and says that its answers do not reflect the project's compiler.
 
 ### Where the turn limits come from
 
