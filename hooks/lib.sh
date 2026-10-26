@@ -1,4 +1,24 @@
-# Shared by bash-output.sh, turn-budget.sh, context.sh, cleanup.sh and bin/agent-turns; source it with: . "$(dirname "$0")/lib.sh"
+# Shared by bash-output.sh, turn-budget.sh, context.sh, cleanup.sh, map-check.sh, lsp-check.sh, window-check.sh, bin/agent-turns and bin/codebase-map; source it with: . "$(dirname "$0")/lib.sh"
+# Sourcing it only defines functions; it runs nothing and sets no variable.
+
+# Prints the working directory of a SessionStart hook: the "cwd" string of the JSON on stdin, or $PWD when stdin is empty, not JSON or has no string there. Needs jq; the caller checks for it first.
+hook_cwd() {
+  cwd=$(jq -r '.cwd | select(type == "string")' 2>/dev/null) || cwd=
+  [ -n "$cwd" ] || cwd="$PWD"
+  printf '%s\n' "$cwd"
+}
+
+# For the command line tools: the script sets $prog to its own name and defines usage(). fail prints "<prog>: <message>" on stderr and exits with the status; bad_usage does the same with the usage text and exit status 2.
+fail() { # status message...
+  status=$1; shift
+  printf '%s: %s\n' "$prog" "$*" >&2
+  exit "$status"
+}
+bad_usage() {
+  printf '%s: %s\n' "$prog" "$*" >&2
+  usage >&2
+  exit 2
+}
 
 # Prints the private directory that holds the Bash-output markers, the session markers, the turn counters and the turn limits, creating it when absent. The base is the
 # first of CLAUDE_PLUGIN_DATA, XDG_RUNTIME_DIR and TMPDIR that is set and is a directory; the directory must be
