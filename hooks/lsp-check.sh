@@ -2,12 +2,12 @@
 # SessionStart: say so when the project's language server is not installed. Reads references/language-servers.tsv; installs nothing.
 command -v jq >/dev/null 2>&1 || exit 0
 root="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 table="$root/references/language-servers.tsv"
 [ -r "$table" ] || exit 0
 
 # Working directory from the hook's JSON on stdin; $PWD when stdin is empty or not JSON.
-cwd=$(jq -r '.cwd | select(type == "string")' 2>/dev/null) || cwd=
-[ -n "$cwd" ] || cwd="$PWD"
+cwd=$(hook_cwd)
 
 # Marker files at the top of the working directory or up to two levels below it, because a workspace root keeps
 # its projects one or two levels down. Dependency, build and hidden directories are not searched, and neither is

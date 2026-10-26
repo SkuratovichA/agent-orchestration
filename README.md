@@ -19,12 +19,14 @@ The same from inside a session: `/plugin marketplace add SkuratovichA/agent-orch
 | --- | --- |
 | `skills/agent-orchestration/` | The `agent-orchestration:agent-orchestration` skill: model and effort per stage, the agent roster, when a command runs directly and when it goes to a reader, several builders in one tree, staged verification, context economics |
 | `skills/agent-orchestration/references/worker-brief-block.md` | The short block of rules a builder works under |
-| `skills/agent-orchestration/references/` | Also the sections the skill points to when they are needed: language servers, several builders in one tree, staged verification and cheap swarms |
+| `skills/agent-orchestration/references/` | Also the sections the skill points to when they are needed: language servers, several builders in one tree, staged verification and cheap swarms, turn limits, roster notes, the session's own budget |
 | `skills/writing-briefs/` | The `agent-orchestration:writing-briefs` skill: the brief skeleton, the blocks to paste, how to treat a report |
 | `skills/writing-briefs/references/` | The brief templates and the Workflow-stage rules |
+| `skills/mapping-codebases/` | The `agent-orchestration:mapping-codebases` skill: reading, refreshing and building the per-repository codebase map |
 | `agents/` | The agent types below |
 | `hooks/` | The hooks below, with a test file beside each script |
 | `bin/agent-turns` | The command that reads and moves a run's turn limit, on the Bash tool's PATH while the plugin is enabled |
+| `bin/codebase-map` | Manages the per-repository codebase map cache outside the repo: `dir` prints and creates it (shared by all worktrees), `status` reports staleness and which modules to refresh, `modules` proposes a module split from tracked files, `stamp` records the build commit. Needs only git and POSIX tools. |
 | `references/language-servers.tsv` | The language servers the SessionStart check knows about |
 | `references/turn-limits.tsv` | The default turn limit of each agent type |
 
@@ -61,6 +63,7 @@ Builders, reviewers and the reader navigate with the language server; the builde
 | SessionStart | `hooks/context.sh` | adds one line that tells the session to load the skills before it spawns anything; after a compaction, says the skills it loaded are already re-attached. Leaves a marker for the session in the plugin's data directory, where `agent-turns` finds the turn counters |
 | SessionStart, on startup | `hooks/lsp-check.sh` | names a language server the project needs and does not have, unless its plugin is switched off in the settings; installs nothing |
 | SessionStart, on startup | `hooks/window-check.sh` | names a compaction window below 200K tokens in the settings or the environment; changes nothing |
+| SessionStart, on startup, clear and compact | `hooks/map-check.sh` | when a map of the repository exists, tells the session where it is, how stale it is and which modules changed, and points to `INDEX.md` and the `mapping-codebases` skill. Silent otherwise |
 | SubagentStart, matcher `^agent-orchestration:builder-` | `hooks/context.sh` | puts the worker block into the context of the two builder types. The reader and the reviewers work from their own definitions; built-in agents such as Explore and Plan, and other plugins' agents, get nothing |
 | PreToolUse on Bash | `hooks/bash-output.sh` | in the main conversation only, refuses once a command whose text does not bound its output; the same command sent again runs. A subagent's Bash is never refused |
 | PreToolUse on every tool | `hooks/turn-budget.sh` | inside a run of one of this plugin's agent types only, refuses a tool call once the run's tool rounds have reached its turn limit, with a reason that says the run ends with its report and the parent can raise the limit and resume it. `StructuredOutput` is never refused, so a schema stage can still return its result |
@@ -135,6 +138,23 @@ Measured on 2026-10-18 over 3,169 subagent runs, a turn being one request. The p
 | `reviewer` | 25 | 20 | 29 | 36 | 38 | 120 |
 | `builder-m` | 23 | 20 | 41 | 59 | 60 | 360 |
 | `builder-l` | 20 | 41 | 76 | 82 | 83 | 500 |
+
+### The codebase map
+
+Added in 0.10.0. The `agent-orchestration:mapping-codebases` skill keeps one map per repository in `${XDG_CACHE_HOME:-~/.cache}/agent-orchestration/maps/<repo>-<key>/`, outside the working tree, where `bin/codebase-map dir` creates and prints it. All worktrees of a repository share that directory, and nothing in it is ever committed. The map is a lead, not proof: a session confirms a claim with the language server or one grep before a plan relies on it, and when the code disagrees the code wins and that module is due for a refresh. The module readers run on the reader type (`haiku`) and the index reader on `sonnet`. `hooks/map-check.sh` tells a new session that a map exists and how stale it is, and the planning section of the `agent-orchestration` skill sends the orchestrator to its `INDEX.md`.
+
+### Where the placement and plain-code rules come from
+
+Added in 0.10.0 to the builders and the reviewer. In a test on a toy monorepo, `builder-m` without the placement rule inlined a generic truncate helper in the service 2 times out of 2 ("can be moved later"); with the rule it put the helper in the shared package 3 times out of 3. The plain-code bullet and the reviewer's matching bullet have no measurement of their own.
+
+### Figures the skills point to
+
+Moved out of `skills/agent-orchestration/SKILL.md` in 0.10.0 so that the skill, which a compaction re-attaches only up to its first 5K tokens, carries rules and not measurements. None of the first three was recorded with a date.
+
+- A Haiku reader cost about $0.10 a run, which is why the effort that keeps it from skipping a check (`max`) is cheap for it.
+- Over two weeks of runs, a Sonnet reader at `high` cost about 19 times a Haiku one, which is why `max` belongs to Haiku only.
+- A `general-purpose` agent started at about 70K tokens of context, a `reader` at about 30K.
+- A run cut at `maxTurns` can be resumed with `SendMessage` from Claude Code 2.1.246 on; the check is under "What Claude Code does with a plugin agent". The measurement behind the turn limits (3,169 runs, about 3x the p99 for the reader and the reviewers, 6x for the builders) is under "Where the turn limits come from".
 
 ### Model notes
 

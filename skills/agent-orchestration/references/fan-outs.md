@@ -16,5 +16,5 @@ const survives = !v1.refuted && v2 && !v2.refuted;
 - It is wrong for subtle analysis: one smart-model read beats ten cheap ones.
 - Anti-hallucination machinery that verifiably works: schema output with "empty is a valid answer — never invent to fill a quota", verbatim-evidence fields re-checked at verify time, refute-by-default skeptics (the staged v1/v2 above — cheap v1 first).
 - Prefer deterministic checks (a test run cannot hallucinate) over any model vote; stop fan-outs on marginal yield (2 dry rounds), never at a fixed headcount.
-- NO chatty multi-turn mutual checking between agents — it multiplies boot cost (the swarm's real cost floor) without adding ground truth.
+- Keep agents from chatty multi-turn mutual checking: it multiplies boot cost (the swarm's real cost floor) without adding ground truth.
 - Shape: find (cheap, evidence-carrying) → verify (staged skeptics) → synthesize (smart), as a DAG.

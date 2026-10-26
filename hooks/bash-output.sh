@@ -86,6 +86,7 @@ quiet() {
   set -- $1
   case "$1" in
     echo|printf|true|:|pwd|cd|test|'['|mkdir|touch|wc|agent-turns) return 0 ;;
+    codebase-map) [ "$2" != modules ]; return ;;
     git)
       shift
       while [ "$1" = -C ] && [ $# -ge 2 ]; do shift 2; done

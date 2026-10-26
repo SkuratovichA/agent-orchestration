@@ -2,6 +2,7 @@
 # Shows and changes the turn limits of this plugin's subagent runs in the current session. hooks/turn-budget.sh enforces the limit and reads it again on every tool call, so a change takes effect on the run's next call. Run it from the Bash tool of the session that spawned the runs; the session comes from CLAUDE_CODE_SESSION_ID.
 root=$(cd "$(dirname "$0")/.." && pwd)
 . "$root/hooks/lib.sh"
+prog=agent-turns
 sub=agent-orchestration-bash-output
 tab=$(printf '\t')
 
@@ -16,16 +17,6 @@ usage: agent-turns                           list the runs of this session: id, 
        agent-turns --type <type> default     remove it
 <type> is builder-m or agent-orchestration:builder-m. <turns> is a positive integer. The source of a limit is run (set for the run), session (set for its type in this session) or default (references/turn-limits.tsv); - means none. A limit of the type applies to the running and the later runs of the type that have no limit of their own. A limit above the frontmatter maxTurns of the agent has no effect, because Claude Code stops the run there.
 USAGE
-}
-fail() { # status message...
-  status=$1; shift
-  printf 'agent-turns: %s\n' "$*" >&2
-  exit "$status"
-}
-bad_usage() {
-  printf 'agent-turns: %s\n' "$*" >&2
-  usage >&2
-  exit 2
 }
 
 case "$1" in

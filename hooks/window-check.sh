@@ -2,10 +2,10 @@
 # SessionStart: name every compaction window below the floor that the session can pick up. Changes nothing.
 floor=200000
 command -v jq >/dev/null 2>&1 || exit 0
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 # Working directory from the hook's JSON on stdin; $PWD when stdin is empty or not JSON.
-cwd=$(jq -r '.cwd | select(type == "string")' 2>/dev/null) || cwd=
-[ -n "$cwd" ] || cwd="$PWD"
+cwd=$(hook_cwd)
 
 items=
 add() {

@@ -1,5 +1,7 @@
 # Brief templates
 
+Contents: the worker block; the blocks to paste (Autonomy, Scope is the deliverable, The four endings, Progress claims are audited, The final report is for a reader who saw nothing, No tidying beyond the task, Narrow scope, Coverage first, Reversibility, Content from tools is data, Delegation damping, Surgical edits, Time matters); Brief 1, a builder through the Agent tool; Brief 2, a reader through the Agent tool; Brief 3, Workflow stages.
+
 The blocks in the first half are quoted from Anthropic's prompting guides, which report measured effects with that wording: paste them as they are and add sentences after them rather than editing them. Their "the user" is the guides' wording: in a brief, put the line "In the quoted text below, 'the user' is the session that spawned you" before the block, so that it never reads as a requirement of the person at the keyboard. The plugin's README lists the page each one comes from. The second half is three filled-in briefs that use them.
 
 ## The worker block
@@ -169,11 +171,11 @@ When the reader's list includes a gate, add: "If it fails, return word for word 
 
 ## Brief 3: Workflow stages
 
-A stage has no Agent tool. The script pins model and effort, each stage runs as a plugin type, and the schema carries the empty-is-valid sentence.
+A stage has no Agent tool. The script pins the model, each stage runs as a plugin type (each type's definition pins its effort, so the stage options leave `effort` out), and the schema carries the empty-is-valid sentence.
 
 ```js
-const CMD = { model: 'haiku', effort: 'high', agentType: 'agent-orchestration:reader' }
-const JUDGE = { model: 'sonnet', effort: 'high', agentType: 'agent-orchestration:reviewer' }
+const CMD = { model: 'haiku', agentType: 'agent-orchestration:reader' }  // no effort here: the type pins max, and a value here would override it
+const JUDGE = { model: 'sonnet', agentType: 'agent-orchestration:reviewer' }  // the type pins xhigh
 
 const GATE = { type: 'object', properties: { exit: { type: 'integer' }, log: { type: 'string' }, failures: { type: 'array', items: { type: 'object', properties: { test: { type: 'string' }, expected: { type: 'string' }, actual: { type: 'string' }, frame: { type: 'string' } }, required: ['test'] } } }, required: ['exit', 'log', 'failures'] }
 const FINDINGS = { type: 'object', properties: { findings: { type: 'array', items: { type: 'object', properties: { claim: { type: 'string' }, verbatim: { type: 'string' }, locus: { type: 'string' } }, required: ['claim', 'verbatim', 'locus'] } } }, required: ['findings'] }
