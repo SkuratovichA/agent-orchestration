@@ -42,7 +42,7 @@ out=$(run "$bare" "$(cwdjson "$TMPDIR/ts")" "$TMPDIR")
 body=$(printf '%s\n' "$out" | sed '$d'); code=$(printf '%s\n' "$out" | tail -n 1)
 ev=$(printf '%s' "$body" | jq -r '.hookSpecificOutput.hookEventName' 2>/dev/null)
 ctx=$(printf '%s' "$body" | jq -r '.hookSpecificOutput.additionalContext' 2>/dev/null)
-case "$ctx" in *'pnpm add -g typescript-language-server typescript@6`'*) has=1 ;; *) has=0 ;; esac
+case "$ctx" in *'npm install -g typescript-language-server typescript@6`'*) has=1 ;; *) has=0 ;; esac
 [ "$code" = "exit=0" ] && [ "$ev" = "SessionStart" ] && [ "$has" = 1 ] && r=ok || r="got: $out"
 check "marker, binary absent: JSON with the install command" "$r"
 

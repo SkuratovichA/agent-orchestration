@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "agent-orchestration",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Rules for spawning subagents and workflow stages: model and effort per stage, when a command runs directly and when it goes to a reader, several builders in one tree, staged verification, and the writing-briefs skill for the text of a brief. Ships five agent types: reader, builder-m, builder-l, reviewer, reviewer-arch.",
   "author": { "name": "Aliaksandr Skuratovich" },
   "license": "MIT"
