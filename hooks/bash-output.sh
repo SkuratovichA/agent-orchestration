@@ -87,11 +87,11 @@ log_capped() {
   capped=
   while [ $# -gt 0 ]; do
     case "$1" in
-      -p|--patch|-u|--cc) return 1 ;;
+      -p|--patch|-u|--cc|-c|-U*|-L*|--patch-with-stat|--word-diff|--word-diff=*|--diff-merges=*|--remerge-diff|--full-diff) return 1 ;;
       -n) count_le "$2" 50 || return 1; capped=1; shift ;;
-      -n*) count_le "${1#-n}" 50 && capped=1 ;;
-      --max-count=*) count_le "${1#*=}" 50 && capped=1 ;;
-      -[0-9]*) count_le "${1#-}" 50 && capped=1 ;;
+      -n*) count_le "${1#-n}" 50 || return 1; capped=1 ;;
+      --max-count=*) count_le "${1#*=}" 50 || return 1; capped=1 ;;
+      -[0-9]*) count_le "${1#-}" 50 || return 1; capped=1 ;;
     esac
     shift
   done
@@ -111,17 +111,32 @@ quiet() {
     codebase-map) [ "$2" != modules ]; return ;;
     git)
       shift
-      while [ "$1" = -C ] && [ $# -ge 2 ]; do shift 2; done
+      while :; do
+        case "$1" in
+          -C|-c) [ $# -ge 2 ] || break; shift 2 ;;
+          --no-pager|-P|--no-optional-locks|--git-dir=*|--work-tree=*|--namespace=*) shift ;;
+          *) break ;;
+        esac
+      done
       sub=$1
       shift
       case "$sub" in
-        status|add|rev-parse|commit|push|pull|fetch|checkout|switch|merge|rebase|remote|worktree|reset|restore|cherry-pick|mv|rm|init|clone) return 0 ;;
-        stash) case "$1" in ''|push|pop|apply|drop|save|clear) return 0 ;; esac ;;
+        status|add|rev-parse|commit|push|pull|fetch|checkout|switch|merge|rebase|remote|worktree|reset|restore|cherry-pick|mv|rm|init|clone)
+          # These print a line or a few; a patch does not. A diffstat, a line per file or per ref can still get through, and a note missed costs nothing.
+          for arg; do
+            case "$arg" in -p|--patch) return 1 ;; esac
+          done
+          return 0
+          ;;
+        stash) case "$1" in list|show) return 1 ;; esac; return 0 ;;
         branch)
-          # Deleting, moving, creating and --show-current print a line; a bare list or a listing flag prints a branch per line.
+          # Only the flags that act and print a line pass; a bare list and every listing flag (--sort, --format, -a, -r, -v, --merged ...) print a branch per line.
           [ $# -gt 0 ] || return 1
           for arg; do
-            case "$arg" in --list|-l|--merged|--no-merged|--contains|--no-contains|-a|--all|-r|--remotes|-v|-vv|--verbose) return 1 ;; esac
+            case "$arg" in
+              -d|-D|-m|-M|-c|-C|-f|--force|--delete|--move|--copy|--show-current|-u|--set-upstream-to|--set-upstream-to=*|--unset-upstream|-t|--track|--no-track) ;;
+              -*) return 1 ;;
+            esac
           done
           return 0
           ;;
@@ -186,7 +201,7 @@ text=$(printf '%s' "$command" | awk '{
 }')
 
 # Looked at from the end: an empty text, a cap or a file at the end passes; a quiet last statement is dropped
-# with its separator and the rest is looked at again; anything else is refused. Here-documents are not parsed,
+# with its separator and the rest is looked at again; anything else gets the note. Here-documents are not parsed,
 # since a wrong note costs one line of context.
 while :; do
   text=$(printf '%s' "$text" | sed -E 's/^([[:space:]]|;)+//; s/([[:space:];]|&&|\|\|)+$//')

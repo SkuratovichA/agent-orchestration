@@ -30,6 +30,7 @@ number() { # value; a positive integer
   [ "$1" -gt 0 ]
 }
 above() { [ "$1" -gt "$2" ]; } # first number is greater than the second
+at_least() { [ "$1" -ge "$2" ]; } # first number is at least the second
 number_or_none() { [ "$1" = none ] || number "$1"; }
 window_ok() { # agent name; the reader's runs are short and compact never, every other type compacts its own context at 200K or later
   [ "$1" = reader ] && return 0
@@ -49,7 +50,9 @@ for file in "$root"/agents/*.md; do
   check "$name has exactly one row in references/turn-limits.tsv" equal "$(tsv_rows "$name")" 1
   check "$name has a turn limit that is a positive integer or none ($limit)" number_or_none "$limit"
   check "$name has a maxTurns in its frontmatter that is a positive integer ($ceiling)" number "$ceiling"
-  if [ "$limit" != none ]; then
+  if [ "$limit" = none ]; then
+    check "$name has no turn limit, so its maxTurns ($ceiling) is out of reach of a batch: at least 10000" at_least "$ceiling" 10000
+  else
     check "the maxTurns of $name ($ceiling) is above its turn limit ($limit)" above "$ceiling" "$limit"
   fi
   check "$name has an autoCompactWindow of at least 200000 in its frontmatter" window_ok "$name"

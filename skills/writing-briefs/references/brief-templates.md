@@ -12,7 +12,7 @@ A builder type this plugin ships receives `worker-brief-block.md` from the Subag
 
 ### Autonomy
 
-The opening sentence carries much of the effect: keep it as written. In a spawned worker "the user" is the orchestrator, which is not watching either. A builder of this plugin adds one stop to the list the block gives, an architectural decision the brief left open; that stop is the worker block's, and it ends the turn with `DECISION NEEDED`, which the block's "blocked on input only the user can provide" already covers.
+The opening sentence carries much of the effect: keep it as written. In a spawned worker "the user" is the orchestrator, which is not watching either. The block stops a worker only for a destructive action or a scope change, and its last check tells it to do any question in its last paragraph itself, so a brief for a builder of this plugin adds the sentence under the block in Brief 1 and Brief 4: an architectural decision the brief left open is a third stop, and the report that begins `DECISION NEEDED` is a finished turn.
 
 ```text
 You are operating autonomously. The user is not watching in real time and cannot answer questions mid-task, so asking 'Want me to…?' or 'Shall I…?' will block the work. For reversible actions that follow from the original request, proceed without asking. Stop only for destructive actions or genuine scope changes the user must decide. Offering follow-ups after the task is done is fine; asking permission before doing the work is not.
@@ -143,6 +143,7 @@ After a failure read `grep -n -m 30 -A 15 -E 'FAIL|Error' <log>`, not the whole 
 Outcome first: one sentence. Then the files changed with line ranges, the three exit codes, and anything you did not do with the reason. Empty sections are fine. Every claim carries the command or file:line that proves it; write "unverified" where you did not check.
 
 <the Autonomy block>
+One stop is added to this block: an architectural decision the brief left open ends your turn with a report that begins DECISION NEEDED (the rules above say what counts). That report is a finished turn, not a question to answer yourself.
 <the No-tidying block>
 Skills to load before the first edit: the skills that govern the files. Size: one handler and one pattern to read, one source file and its test to edit, three gates.
 ```
@@ -222,6 +223,7 @@ Each task's proving command prints `exit=0`, and at the end the whole file's tes
 One entry per task, in order: outcome in a sentence, the proof (the command and its exit code), what is left. A task you did not reach is "not run" with the reason. Then the files changed with line ranges and anything you did not do. Every task number must appear.
 
 <the Autonomy block>
+One stop is added to this block: an architectural decision the brief left open ends your turn with a report that begins DECISION NEEDED (the rules above say what counts). That report is a finished turn, not a question to answer yourself.
 <the No-tidying block>
 Skills to load before the first edit: the skills that govern the files. Size: five handlers and one helper to read, three source files and one test file to edit, six gates.
 ```
