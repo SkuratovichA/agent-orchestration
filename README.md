@@ -1,15 +1,15 @@
 # agorch
 
-agorch is short for agent orchestration; the plugin was called `agent-orchestration` until 0.12.0, and the GitHub repository keeps that name. A Claude Code plugin: the rules a session follows when it spawns subagents or workflow stages, and the agent types those rules name. It is a policy made of prompts and hooks. It decides which model does what, what a brief must contain and what a spawned agent may do; running the agents stays with Claude Code, and the plugin adds no task queue or locking of its own.
+agorch is short for agent orchestration; the plugin was called `agent-orchestration` until 0.12.0, and so was the GitHub repository until it was renamed too (the old address redirects, so an existing install and a clone with the old remote keep working). A Claude Code plugin: the rules a session follows when it spawns subagents or workflow stages, and the agent types those rules name. It is a policy made of prompts and hooks. It decides which model does what, what a brief must contain and what a spawned agent may do; running the agents stays with Claude Code, and the plugin adds no task queue or locking of its own.
 
 ## Install
 
 ```sh
-claude plugin marketplace add SkuratovichA/agent-orchestration
+claude plugin marketplace add SkuratovichA/agorch
 claude plugin install agorch@agorch
 ```
 
-The same from inside a session: `/plugin marketplace add SkuratovichA/agent-orchestration`, then `/plugin install agorch@agorch`. A new session then starts with the line "The agorch plugin is active".
+The same from inside a session: `/plugin marketplace add SkuratovichA/agorch`, then `/plugin install agorch@agorch`. A new session then starts with the line "The agorch plugin is active".
 
 After a rename from `agent-orchestration`, the skills are `agorch:agorch`, `agorch:writing-briefs` and `agorch:mapping-codebases`, the agent types are `agorch:builder-m` and so on, and the codebase maps are looked for in `${XDG_CACHE_HOME:-~/.cache}/agorch/maps` (move an old `agent-orchestration/maps` there to keep them). Anything of yours that names the old skills or types, a CLAUDE.md or a permission rule, needs the new names.
 
@@ -87,14 +87,14 @@ Builders that run at the same time share the working tree, its git index, its po
 ## Working on the plugin
 
 ```sh
-git clone https://github.com/SkuratovichA/agent-orchestration.git
-claude --plugin-dir ./agent-orchestration
+git clone https://github.com/SkuratovichA/agorch.git
+claude --plugin-dir ./agorch
 ```
 
 Check the files after an edit:
 
 ```sh
-cd agent-orchestration
+cd agorch
 for target in . .claude-plugin/plugin.json agents skills; do claude plugin validate "$target" --strict || break; done
 for t in hooks/*.test.sh; do sh "$t" || break; done
 ```
