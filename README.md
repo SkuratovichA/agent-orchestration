@@ -15,6 +15,18 @@ After a rename from `agent-orchestration`, the skills are `agorch:agorch`, `agor
 
 `jq` is optional. Without it the Bash-output check, the turn limit and the language-server check do nothing; the skills, the agents and the worker block work the same.
 
+### Pairing with gsttt
+
+Added in 0.13.0. agorch works alone and works better next to [gsttt](https://github.com/SkuratovichA/gsttt), a separate plugin that answers what a change affects: from an index of a repository's imports and contracts (HTTP routes, GraphQL, gRPC, tables, queues, environment variables) it lists what a change reaches, what calls a name and who imports a file, in milliseconds, and it says how much of the repository it covered. The codebase map says what code is for and gsttt says what it reaches, so `agorch:agorch` and `agorch:mapping-codebases` ask gsttt for the second whenever its tools are listed, and fall back to the language server and grep when it is not installed or does not read the language (it reads TypeScript, JavaScript, Python and Rust).
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/SkuratovichA/gsttt/main/install.sh | sh
+claude plugin marketplace add SkuratovichA/gsttt
+claude plugin install gsttt@gsttt
+```
+
+agorch does not list gsttt under `dependencies` in its manifest, on purpose: a dependency must be enabled for the plugin to load, and one from another marketplace is not installed unless the marketplace file lists it in `allowCrossMarketplaceDependenciesOn`, so agorch would stop loading wherever gsttt is missing.
+
 ## What is in it
 
 | Path | What it is |
@@ -147,7 +159,7 @@ Measured on 2026-10-18 over 3,169 subagent runs, a turn being one request. The p
 
 ### The codebase map
 
-Added in 0.10.0. The `agorch:mapping-codebases` skill keeps one map per repository in `${XDG_CACHE_HOME:-~/.cache}/agorch/maps/<repo>-<key>/`, outside the working tree, where `bin/codebase-map dir` creates and prints it. All worktrees of a repository share that directory, and nothing in it is ever committed. The map is a lead, not proof: a session confirms a claim with the language server or one grep before a plan relies on it, and when the code disagrees the code wins and that module is due for a refresh. The module readers run on the reader type (`haiku`) and the index reader on `sonnet`. `hooks/map-check.sh` tells a new session that a map exists and how stale it is, and the planning section of the `agorch` skill sends the orchestrator to its `INDEX.md`.
+Added in 0.10.0. The `agorch:mapping-codebases` skill keeps one map per repository in `${XDG_CACHE_HOME:-~/.cache}/agorch/maps/<repo>-<key>/`, outside the working tree, where `bin/codebase-map dir` creates and prints it. All worktrees of a repository share that directory, and nothing in it is ever committed. The map is a lead, not proof: a session confirms a claim with the language server or one grep before a plan relies on it, and when the code disagrees the code wins and that module is due for a refresh. The module readers run on the reader type (`haiku`) and the index reader on `sonnet`. `hooks/map-check.sh` tells a new session that a map exists and how stale it is, and the planning section of the `agorch` skill sends the orchestrator to its `INDEX.md`. With gsttt installed, the orchestrator and the module readers take who-uses-what from it instead of grep (see Pairing with gsttt).
 
 ### Where the placement and plain-code rules come from
 

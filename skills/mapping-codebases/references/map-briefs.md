@@ -1,6 +1,6 @@
 # Map briefs
 
-There are two briefs: the module brief for step 2 of building and for refreshing, and the index brief for step 3. Fill in every `<...>`. Every path is absolute. The playbook is written for code that exports symbols. For a module of another kind, say in the brief what its public surface is: the commands a `bin/` directory offers, the routes of a service, or the skills and agent types of a plugin.
+There are two briefs: the module brief for step 2 of building and for refreshing, and the index brief for step 3. Fill in every `<...>`. A line that starts with `<refresh only>` or `<gsttt only>` stays, without the marker, only when it applies. Every path is absolute. The playbook is written for code that exports symbols. For a module of another kind, say in the brief what its public surface is: the commands a `bin/` directory offers, the routes of a service, or the skills and agent types of a plugin.
 
 Contents: the module brief, the module file shape, the index brief, the index shape.
 
@@ -19,6 +19,8 @@ Playbook:
 - Reusable helpers: functions that know nothing of this module's domain, such as formatting, parsing, retries, validation, type guards and client wrappers. Give each its path:line and a line on what it does. They matter most: they are what other modules should reuse, or what belongs in the shared package.
 - Read a file over 400 lines through its outline (`grep -n -E "^(export |def |class |func |pub fn )"`), not whole.
 - Read about 25 files at most. Past that, map from outlines and say so under "Not mapped".
+
+<gsttt only> `gsttt` is on your PATH and reads this module's language. Take users and dependencies from it, and use the methods above only for what it leaves out. In `<repo root>`, `gsttt impact <entry file> --name <symbol> --no-tests` lists the direct callers of an exported symbol by file, and `gsttt dependencies <file>` lists what a file imports, marking imports that resolved to a package or to nothing. Copy no coverage or freshness line into the module file. An answer that ends with a `stale:` line wants `gsttt index` first. A path the answer calls not in the index, and a file that declares no such name, are gaps: cover them with the methods above and say so under "Not mapped".
 
 <refresh only> The module changed since <commit>. `git diff --stat <commit> HEAD -- <module path>` shows what changed. Read the current module file first. Change only what the diff makes wrong.
 
