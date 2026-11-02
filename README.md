@@ -37,12 +37,14 @@ These are the plugin's defaults. A user's or a project's CLAUDE.md overrides the
 | Agent type | Model, effort | Turn limit | Tools | For |
 | --- | --- | --- | --- | --- |
 | `agent-orchestration:reader` | haiku, max | 60 | Bash, Read, Grep, Glob, LSP, Skill | reconnaissance: follows a lead over several steps and returns the answer or where it got stuck, never raw output |
-| `agent-orchestration:builder-m` | sonnet, medium | 360 | all | the default implementer: a brief that leaves no design question open |
-| `agent-orchestration:builder-l` | sonnet, xhigh | 500 | all | an implementation whose difficulty is in the design |
-| `agent-orchestration:reviewer` | sonnet, xhigh | 120 | Read, Grep, Glob, LSP, Skill | code review: correctness, reuse, tests, style |
-| `agent-orchestration:reviewer-arch` | opus, high | 120 | Read, Grep, Glob, LSP, Skill | architectural review, only on request or when the plan marks the change as architecture-level |
+| `agent-orchestration:builder-m` | sonnet, medium | none | all | the default implementer: a task or a batch of tasks whose brief leaves no architectural question open |
+| `agent-orchestration:builder-l` | sonnet, xhigh | none | all | only mission-critical work or work that needs long reasoning, never work that is merely large |
+| `agent-orchestration:reviewer` | sonnet, xhigh | 300 | Read, Grep, Glob, LSP, Skill | code review of a diff, a pull request or a whole batch: correctness, reuse, tests, style |
+| `agent-orchestration:reviewer-arch` | opus, high | 300 | Read, Grep, Glob, LSP, Skill | architectural review, only on request or when the plan marks the change as architecture-level |
 
-The turn limit is a runaway stop far above ordinary work, about 3x the p99 of past runs for the reader and the reviewers and 6x for the builders, and no definition or brief states it. The plugin's hook enforces it, not Claude Code: it counts the run's tool rounds, notes the count at 75% of the limit and at the limit, and from then on refuses the run's tool calls with a reason, so the run ends with a report of what is done and what is left. The parent session moves the limit whenever it wants and resumes a refused run with `SendMessage`:
+Work is batched: twenty tasks are four or five builders, each given its tasks in order, and one reviewer reads the whole batch (`skills/agent-orchestration/references/batching.md`). A builder never decides an architectural question itself: it finishes the tasks that do not depend on it and ends its turn with a `DECISION NEEDED` report, and the orchestrator answers it with `SendMessage`.
+
+The builders have no turn limit, because a batch takes many turns, and every non-reader type compacts its own context at 200K tokens (`autoCompactWindow` in its definition). The other types keep a runaway stop far above ordinary work (the reader about 3x the p99 of past runs, the reviewers sized for a batch). The plugin's hook enforces it, not Claude Code: it counts the run's tool rounds, notes the count at 75% of the limit and at the limit, and from then on refuses the run's tool calls with a reason, so the run ends with a report of what is done and what is left. The parent session moves the limit, or gives a builder one, whenever it wants and resumes a refused run with `SendMessage`:
 
 ```sh
 agent-turns                        # every run of this session: rounds, limit, and whether the limit is the run's, the session's or the default
@@ -50,7 +52,7 @@ agent-turns <agent-id> 720         # one run's limit, from its next tool call on
 agent-turns --type builder-m 720   # this session's limit for a type, for its running and later runs that have no limit of their own
 ```
 
-Every agent's `maxTurns` is 1000, Claude Code's own hard stop, which nothing moves during a session; a run cut there comes back marked partial and can be resumed the same way. `builder-m` is the default implementer; the orchestrator picks `builder-l` only when the difficulty is in the design. A `model` or `effort` passed on the spawn call raises any type when the user asks for it. Opus is spawned only through `reviewer-arch` or when the user names it.
+The builders' `maxTurns` is 10000 and the other agents' 1000. That is Claude Code's own hard stop, which nothing moves during a session, and the builders' is out of reach of any batch; what Claude Code does with a `maxTurns` that is left out is not documented, which is why the builders carry a number and not an omission. A run cut there comes back marked partial and can be resumed the same way. `builder-m` is the default implementer; the orchestrator picks `builder-l` only for mission-critical work or work that needs long reasoning. A `model` or `effort` passed on the spawn call raises any type when the user asks for it. Opus is spawned only through `reviewer-arch` or when the user names it.
 
 A builder runs its own tests, lint and type checks in its own shell with the log on disk, and sends a reader only on reconnaissance. A reviewer has no shell and no Agent tool, so it cannot change anything or start an agent that can: the orchestrator gives it the diff as a file. The reader and the reviewers also list `LSP`, `Skill` and `ToolSearch`, so they navigate with the language server and load the skills a brief names, and `StructuredOutput`, which a Workflow stage needs to return a schema result. They get no MCP tools: an allowlist can grant them only server by server, and most servers carry write tools.
 
@@ -65,8 +67,8 @@ Builders, reviewers and the reader navigate with the language server; the builde
 | SessionStart, on startup | `hooks/window-check.sh` | names a compaction window below 200K tokens in the settings or the environment; changes nothing |
 | SessionStart, on startup, clear and compact | `hooks/map-check.sh` | when a map of the repository exists, tells the session where it is, how stale it is and which modules changed, and points to `INDEX.md` and the `mapping-codebases` skill. Silent otherwise |
 | SubagentStart, matcher `^agent-orchestration:builder-` | `hooks/context.sh` | puts the worker block into the context of the two builder types. The reader and the reviewers work from their own definitions; built-in agents such as Explore and Plan, and other plugins' agents, get nothing |
-| PreToolUse on Bash | `hooks/bash-output.sh` | in the main conversation only, refuses once a command whose text does not bound its output; the same command sent again runs. A subagent's Bash is never refused |
-| PreToolUse on every tool | `hooks/turn-budget.sh` | inside a run of one of this plugin's agent types only, refuses a tool call once the run's tool rounds have reached its turn limit, with a reason that says the run ends with its report and the parent can raise the limit and resume it. `StructuredOutput` is never refused, so a schema stage can still return its result |
+| PreToolUse on Bash | `hooks/bash-output.sh` | in the main conversation only, adds a note, once per command, when a command's text does not bound its output; the command runs. It blocks nothing and grants no permission, and a simple command (a git state or history command with a cap, `ls`, a commit or a push) gets no note. A subagent's Bash gets nothing |
+| PreToolUse on every tool | `hooks/turn-budget.sh` | inside a run of one of this plugin's agent types that has a turn limit only, refuses a tool call once the run's tool rounds have reached its turn limit, with a reason that says the run ends with its report and the parent can raise the limit and resume it. `StructuredOutput` is never refused, so a schema stage can still return its result |
 | PostToolBatch | `hooks/turn-budget.sh` | inside a run of one of this plugin's agent types only, counts the tool rounds and adds a factual note at 75% of the turn limit and at the limit: the count so far, the limit, and what happens there. The limit is re-read on every call: the run's own limit set with `agent-turns`, else the session's for its type, else `references/turn-limits.tsv`. Any other agent, and the main conversation, get nothing |
 | SessionEnd | `hooks/cleanup.sh` | removes the markers, counters and limits the hooks and `agent-turns` left for that session, and any such file older than a week |
 
@@ -105,9 +107,11 @@ Nothing in this section is loaded into a session. It records where the rules cam
 
 Checked against the Claude Code documentation on 2026-10-10 (version 2.1.296).
 
-- An agent file may set `name`, `description`, `tools`, `disallowedTools`, `model`, `effort`, `maxTurns`, `skills`, `memory`, `isolation`, `background`, `color` and `omitClaudeMd`. `hooks`, `mcpServers` and `permissionMode` are ignored in an agent that a plugin ships. https://code.claude.com/docs/en/sub-agents
+- An agent file may set `name`, `description`, `tools`, `disallowedTools`, `model`, `effort`, `maxTurns`, `autoCompactWindow`, `skills`, `memory`, `isolation`, `background`, `color` and `omitClaudeMd`. `autoCompactWindow` (100000 to 1000000, since 2.1.296) is the subagent's own compaction window, and `CLAUDE_CODE_AUTO_COMPACT_WINDOW` overrides it; the agents here set 200000, the floor `hooks/window-check.sh` warns below. Checked on 2026-11-02. https://code.claude.com/docs/en/sub-agents `hooks`, `mcpServers` and `permissionMode` are ignored in an agent that a plugin ships. https://code.claude.com/docs/en/sub-agents
 - `effort` takes `low`, `medium`, `high`, `xhigh` or `max` and overrides the session's effort; `model` takes `sonnet`, `opus`, `haiku`, `fable`, a full model id or `inherit`. A `model` or `effort` passed on the spawn call wins over the definition.
-- `maxTurns` is the only per-subagent bound Claude Code itself enforces, and there is no soft limit; the `Agent` tool takes no turn count. A subagent that reaches it is stopped and its output comes back marked as partial; since 2.1.246 the parent can resume it with `SendMessage`, its context intact. Checked on 2026-10-18 (version 2.1.302). https://code.claude.com/docs/en/sub-agents
+- `maxTurns` is the only per-subagent bound Claude Code itself enforces, and there is no soft limit; the `Agent` tool takes no turn count. A subagent that reaches it is stopped and its output comes back marked as partial; since 2.1.246 the parent can resume it with `SendMessage`, its context intact. Checked on 2026-10-18 (version 2.1.302). What a `maxTurns` that is left out means is not documented, so the builders, which are meant to have no limit, carry 10000 and not an omission (2026-11-02). https://code.claude.com/docs/en/sub-agents
+- A subagent cannot ask its parent a question and wait: `AskUserQuestion` is removed from subagents. The documented route is the one `DECISION NEEDED` uses: the agent ends its turn with the question in its report, and the parent answers with `SendMessage` to the same agent, which resumes with its full conversation history (2026-11-02).
+- `PreToolUse` documents `hookSpecificOutput.additionalContext` only in an example that also carries `permissionDecision: "allow"`. Probed on 2026-11-02 (version 2.1.316) with `claude -p`: a hook that returns the field alone puts the note in the model's context and the call goes through the normal permission flow, so under `--permission-mode default` a Bash command outside `--allowedTools` was refused exactly as with a silent hook. `hooks/bash-output.sh` relies on this and never returns a `permissionDecision`.
 - Agent definitions are read when a session starts, and `/plugin` does not reload them: a session started before an update keeps the old `maxTurns` until it restarts. Seen on 2026-10-22, when a session kept the 40 of 0.7 after 0.8 was installed.
 - Inside a subagent, `PreToolUse` carries `agent_id`, `agent_type` and `tool_name`, and a `permissionDecision` of `deny` refuses the call; the agent reads the reason and writes its report. Checked on 2026-10-22 (version 2.1.308) with a probe plugin.
 - `PostToolBatch` fires inside a subagent once per tool round, with `agent_id` and `agent_type` in the payload (both absent in the main conversation), and may return `hookSpecificOutput.additionalContext`. The Claude Code docs ask for hook context written as factual statements rather than imperative instructions. Checked on 2026-10-18 (version 2.1.302; the payload by a recorded probe). https://code.claude.com/docs/en/hooks
@@ -130,14 +134,14 @@ Checked on 2026-10-12 (Claude Code 2.1.296, typescript-language-server 6.0.2).
 
 ### Where the turn limits come from
 
-Measured on 2026-10-18 over 3,169 subagent runs, a turn being one request. The plugin's own types had 20 to 44 runs each, so the p99 sits close to the maximum. The limit was set at about 3x the p99, and on 2026-10-22 the builders' limits were doubled, so a long build has room before the parent has to step in. `reviewer-arch` had no runs and takes the reviewer's limit. `hooks/turn-limits.test.sh` pins the limits in the two tables above to `references/turn-limits.tsv`, and every agent's `maxTurns` above its limit.
+Measured on 2026-10-18 over 3,169 subagent runs, a turn being one request. The plugin's own types had 20 to 44 runs each, so the p99 sits close to the maximum. The limit was set at about 3x the p99; the builders' were doubled on 2026-10-22, and on 2026-11-02 they were taken away (`none`), because one builder now works a batch of tasks in sequence and a run of that size has no p99 to measure it against. The reviewers' went from 120 to 300 for the same reason: one reviewer reads a whole batch. `reviewer-arch` had no runs and takes the reviewer's limit. `hooks/turn-limits.test.sh` pins the limits in the two tables above to `references/turn-limits.tsv`, and every agent's `maxTurns` above its limit. A builder that needs a stop for one run gets it with `agent-turns <agent-id> <turns>`.
 
 | Type | Runs | p50 | p90 | p99 | Max | Limit |
 | --- | --- | --- | --- | --- | --- | --- |
 | `reader` | 44 | 4 | 9 | 21 | 29 | 60 |
-| `reviewer` | 25 | 20 | 29 | 36 | 38 | 120 |
-| `builder-m` | 23 | 20 | 41 | 59 | 60 | 360 |
-| `builder-l` | 20 | 41 | 76 | 82 | 83 | 500 |
+| `reviewer` | 25 | 20 | 29 | 36 | 38 | 300 |
+| `builder-m` | 23 | 20 | 41 | 59 | 60 | none |
+| `builder-l` | 20 | 41 | 76 | 82 | 83 | none |
 
 ### The codebase map
 
@@ -195,7 +199,7 @@ Effort level names do not correspond to the same amount of thinking across model
 
 Checked against the Claude Code documentation on 2026-10-13.
 
-- The compaction window comes from `autoCompactWindow` in the settings, per model under `modelSettings`, or from `CLAUDE_CODE_AUTO_COMPACT_WINDOW`; `hooks/window-check.sh` reads these. https://code.claude.com/docs/en/settings-reference#modelsettings and https://code.claude.com/docs/en/env-vars
+- The compaction window comes from `autoCompactWindow` in the settings, per model under `modelSettings`, from `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, or for a subagent from its own `autoCompactWindow` frontmatter; `hooks/window-check.sh` reads the first two. https://code.claude.com/docs/en/settings-reference#modelsettings and https://code.claude.com/docs/en/env-vars
 - After a compaction the invoked skill bodies are re-attached, capped at 5K tokens per skill, which is why `hooks/context.sh` tells the session not to load them again. https://code.claude.com/docs/en/context-window#what-survives-compaction
 
 ## License

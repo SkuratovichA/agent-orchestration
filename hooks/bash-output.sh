@@ -1,11 +1,13 @@
 #!/bin/sh
 # PreToolUse on Bash, for the main conversation only: whatever a command prints there is re-read on every
-# later request. A command whose text does not bound its own output is refused once, with the ways to bound
-# it; the same command sent again runs. The text bounds its output when it ends in a cap (wc, grep -c, -q or
-# -m, head or tail with a small count; a cut may follow) or in a redirect to a file. Trailing statements that print next to
-# nothing (echo, cd, git status, ls without -R) are set aside first. A subagent's Bash passes untouched,
-# because reading whole output and returning the facts is what a subagent is for. The markers live in a
-# private directory (lib.sh); without a safe session id or marker directory the hook lets the call through.
+# later request. A command whose text does not bound its own output gets a factual note in the model's
+# context, once per command and session, and runs: the hook blocks nothing and returns no permissionDecision, so
+# the normal permission flow decides (probed on Claude Code 2.1.316, see the README). The text bounds its output
+# when it ends in a cap (wc, grep -c, -q or -m, head or tail with a small count; a cut may follow) or in a
+# redirect to a file. Trailing statements that print next to nothing (echo, cd, git status, a commit, a push,
+# git log with a count, ls without -R) are set aside first. A subagent's Bash passes untouched, because
+# reading whole output and returning the facts is what a subagent is for. The markers live in a private
+# directory (lib.sh); without a safe session id or marker directory the hook says nothing.
 . "$(dirname "$0")/lib.sh"
 command -v jq >/dev/null 2>&1 || exit 0
 set -f
@@ -80,9 +82,29 @@ file_redirect() {
   return 0
 }
 
-# One statement that prints next to nothing.
+# git log arguments that cap the count at 50 and do not print patches.
+log_capped() {
+  capped=
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -p|--patch|-u|--cc) return 1 ;;
+      -n) count_le "$2" 50 || return 1; capped=1; shift ;;
+      -n*) count_le "${1#-n}" 50 && capped=1 ;;
+      --max-count=*) count_le "${1#*=}" 50 && capped=1 ;;
+      -[0-9]*) count_le "${1#-}" 50 && capped=1 ;;
+    esac
+    shift
+  done
+  [ -n "$capped" ]
+}
+
+# One statement that prints next to nothing. A command substitution is let through only in the message of a git commit.
 quiet() {
-  case "$1" in *'|'*|*'$('*|*'`'*) return 1 ;; esac
+  case "$1" in *'|'*|*'`'*) return 1 ;; esac
+  stmt=${1#"${1%%[![:space:]]*}"}
+  case "$stmt" in
+    *'$('*) case "$stmt" in 'git commit '*|'git -C '*' commit '*) ;; *) return 1 ;; esac ;;
+  esac
   set -- $1
   case "$1" in
     echo|printf|true|:|pwd|cd|test|'['|mkdir|touch|wc|agent-turns) return 0 ;;
@@ -90,9 +112,20 @@ quiet() {
     git)
       shift
       while [ "$1" = -C ] && [ $# -ge 2 ]; do shift 2; done
-      case "$1" in
-        status|add|rev-parse) return 0 ;;
-        branch) [ "$2" = --show-current ]; return ;;
+      sub=$1
+      shift
+      case "$sub" in
+        status|add|rev-parse|commit|push|pull|fetch|checkout|switch|merge|rebase|remote|worktree|reset|restore|cherry-pick|mv|rm|init|clone) return 0 ;;
+        stash) case "$1" in ''|push|pop|apply|drop|save|clear) return 0 ;; esac ;;
+        branch)
+          # Deleting, moving, creating and --show-current print a line; a bare list or a listing flag prints a branch per line.
+          [ $# -gt 0 ] || return 1
+          for arg; do
+            case "$arg" in --list|-l|--merged|--no-merged|--contains|--no-contains|-a|--all|-r|--remotes|-v|-vv|--verbose) return 1 ;; esac
+          done
+          return 0
+          ;;
+        log) log_capped "$@"; return ;;
         diff) case " $* " in *' --stat '*|*' --shortstat '*|*' --name-only '*|*' --quiet '*) return 0 ;; esac ;;
       esac
       return 1
@@ -154,7 +187,7 @@ text=$(printf '%s' "$command" | awk '{
 
 # Looked at from the end: an empty text, a cap or a file at the end passes; a quiet last statement is dropped
 # with its separator and the rest is looked at again; anything else is refused. Here-documents are not parsed,
-# since a wrong refusal costs one resend.
+# since a wrong note costs one line of context.
 while :; do
   text=$(printf '%s' "$text" | sed -E 's/^([[:space:]]|;)+//; s/([[:space:];]|&&|\|\|)+$//')
   [ -n "$text" ] || exit 0
@@ -165,9 +198,9 @@ while :; do
   text=${text%"$last"}
 done
 
-# Asked once per distinct command and session. If the mark cannot be written the hook lets the call through,
-# because a refusal that can never be answered would block the command for good.
+# Told once per distinct command and session. If the mark cannot be written the hook says nothing, so the same
+# note never repeats for the same command.
 mark="$dir/$session.$(printf '%s' "$command" | cksum | tr -cd '0-9')"
 [ -f "$mark" ] && exit 0
 : > "$mark" 2>/dev/null || exit 0
-jq -n '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "Nothing in this command bounds its output, and what it prints stays in the main conversation and is re-read on every later request. Bound it and run that instead: send stdout to a file and read the part you need, or end the pipeline in head, tail -c 4000, wc, grep -c or grep -m 20. If the output is large and needs judging, give the goal and the command to an agent-orchestration:reader. If you are certain it prints only a few lines, send the same command again unchanged and it will run."}}'
+jq -n '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: "The Bash command just sent does not bound its output (no cap, no redirect to a file), so everything it prints stays in the main conversation and is re-read on every later request. It runs as sent. Output sent to a file and read with tail -c 4000 or grep -m 20, a pipeline that ends in head, wc or grep -c, and the Read tool with a line range keep that small; a large output that needs judging goes to one agent-orchestration:reader. A simple command with small output, such as git status, git log -n 20 or git diff --stat, runs directly and never needs an agent."}}'

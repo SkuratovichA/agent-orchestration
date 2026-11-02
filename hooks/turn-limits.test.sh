@@ -30,6 +30,12 @@ number() { # value; a positive integer
   [ "$1" -gt 0 ]
 }
 above() { [ "$1" -gt "$2" ]; } # first number is greater than the second
+number_or_none() { [ "$1" = none ] || number "$1"; }
+window_ok() { # agent name; the reader's runs are short and compact never, every other type compacts its own context at 200K or later
+  [ "$1" = reader ] && return 0
+  value=$(awk '/^---/ { marks++; next } marks == 1 && $1 == "autoCompactWindow:" { print $2; exit }' "$root/agents/$1.md")
+  number "$value" && [ "$value" -ge 200000 ]
+}
 header_is_a_comment() { [ "$(sed 1q "$tsv")" = "# agent$(printf '\t')turn limit" ]; }
 
 check "the table of turn limits begins with its header line" header_is_a_comment
@@ -41,9 +47,12 @@ for file in "$root"/agents/*.md; do
   limit=$(tsv_limit "$name")
   ceiling=$(max_turns "$root" "$name")
   check "$name has exactly one row in references/turn-limits.tsv" equal "$(tsv_rows "$name")" 1
-  check "$name has a turn limit that is a positive integer ($limit)" number "$limit"
+  check "$name has a turn limit that is a positive integer or none ($limit)" number_or_none "$limit"
   check "$name has a maxTurns in its frontmatter that is a positive integer ($ceiling)" number "$ceiling"
-  check "the maxTurns of $name ($ceiling) is above its turn limit ($limit)" above "$ceiling" "$limit"
+  if [ "$limit" != none ]; then
+    check "the maxTurns of $name ($ceiling) is above its turn limit ($limit)" above "$ceiling" "$limit"
+  fi
+  check "$name has an autoCompactWindow of at least 200000 in its frontmatter" window_ok "$name"
   for doc in skills/agent-orchestration/SKILL.md README.md; do
     check "$doc: the turn limit of $name is $limit, as in references/turn-limits.tsv" equal "$(table_cell "$root/$doc" "$name" 4)" "$limit"
   done

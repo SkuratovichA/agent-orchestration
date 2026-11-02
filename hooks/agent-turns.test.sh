@@ -242,7 +242,9 @@ real_cli="$real_root/bin/agent-turns"
 out=$(${HOOK_SH:-sh} "$real_cli" --type reader)
 check "the shipped command shows the shipped limit of the reader" equal "$(printf '%s\n' "$out" | awk '$1 == "reader" { $1 = $1; print }')" "reader 60 default"
 out=$(${HOOK_SH:-sh} "$real_cli" --type agent-orchestration:builder-m)
-check "and of builder-m, with the prefix" equal "$(printf '%s\n' "$out" | awk '$1 == "builder-m" { $1 = $1; print }')" "builder-m 360 default"
+check "and of builder-m, with the prefix, which has none" equal "$(printf '%s\n' "$out" | awk '$1 == "builder-m" { $1 = $1; print }')" "builder-m - -"
+out=$(${HOOK_SH:-sh} "$real_cli" --type reviewer)
+check "and of the reviewer" equal "$(printf '%s\n' "$out" | awk '$1 == "reviewer" { $1 = $1; print }')" "reviewer 300 default"
 i=0
 while [ "$i" -lt 8 ]; do hook_as PostToolBatch e1 agent-orchestration:x > /dev/null; i=$((i + 1)); done
 run e1

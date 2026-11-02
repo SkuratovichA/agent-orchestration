@@ -211,8 +211,15 @@ check "round 46 of the reader prints nothing" silent batch s13 a1 agent-orchestr
 printf '59 reader\n' > "$state/s13.turns.a2"
 check "round 60 of the reader is its limit" batch_says "$(at_text 60)" s13 a2 agent-orchestration:reader ""
 check "and the reader's next call is refused" pre_denies "$(deny_text 60 60)" s13 a2 agent-orchestration:reader ""
-printf '359 builder-m\n' > "$state/s13.turns.a3"
-check "round 360 of builder-m is its limit" batch_says "$(at_text 360)" s13 a3 agent-orchestration:builder-m ""
+printf '299 reviewer\n' > "$state/s13.turns.a3"
+check "round 300 of the reviewer is its limit" batch_says "$(at_text 300)" s13 a3 agent-orchestration:reviewer ""
+printf '5000 builder-m\n' > "$state/s13.turns.a4"
+check "builder-m has no limit: round 5001 prints nothing" silent batch s13 a4 agent-orchestration:builder-m ""
+check "and its tool calls are never refused" silent pre s13 a4 agent-orchestration:builder-m ""
+check "builder-l has no limit either" silent batch s13 a5 agent-orchestration:builder-l ""
+printf '7 builder-m\n' > "$state/s13.turns.a6"
+printf '8\n' > "$state/s13.limit.a6"
+check "a limit given to a builder with agent-turns is enforced: round 8 is its limit" batch_says "$(at_text 8)" s13 a6 agent-orchestration:builder-m ""
 
 # The recorded payloads of a subagent, the type changed to one of this plugin's.
 recorded() { # payload-file jq-filter; the hook's output for the recorded payload after the filter
