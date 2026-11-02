@@ -5,7 +5,7 @@
 # agents) gets nothing. The JSON is built with awk, so a missing jq loses nothing.
 event="$1"
 root="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-block="$root/skills/agent-orchestration/references/worker-brief-block.md"
+block="$root/skills/agorch/references/worker-brief-block.md"
 [ -r "$block" ] || exit 0
 
 case "$event" in
@@ -30,10 +30,10 @@ case "$event" in
         ;;
     esac
     if [ "$source" = compact ]; then
-      printf '%s\n' 'The agent-orchestration skills you loaded before this compaction are re-attached in this context, so do not load them again, and re-read one of their references only for a section you need now and do not have. If you had not loaded them, load agent-orchestration:agent-orchestration before spawning a subagent or a Workflow stage, and agent-orchestration:writing-briefs before writing a brief.'
+      printf '%s\n' 'The agorch skills you loaded before this compaction are re-attached in this context, so do not load them again, and re-read one of their references only for a section you need now and do not have. If you had not loaded them, load agorch:agorch before spawning a subagent or a Workflow stage, and agorch:writing-briefs before writing a brief.'
       exit 0
     fi
-    printf '%s\n' 'The agent-orchestration plugin is active. Load its agent-orchestration:agent-orchestration skill before spawning a subagent or a Workflow stage, and agent-orchestration:writing-briefs before writing a brief. Its builder types receive the plugin'"'"'s worker rules on their own; any other implementer you want bound by them gets worker-brief-block.md pasted into its brief.'
+    printf '%s\n' 'The agorch plugin is active. Load its agorch:agorch skill before spawning a subagent or a Workflow stage, and agorch:writing-briefs before writing a brief. Its builder types receive the plugin'"'"'s worker rules on their own; any other implementer you want bound by them gets worker-brief-block.md pasted into its brief.'
     ;;
   SubagentStart)
     input=$(cat)
@@ -43,7 +43,7 @@ case "$event" in
       type=$(printf '%s\n' "$input" | sed -n 's/.*"agent_type"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | sed 1q)
     fi
     case "$type" in
-      ''|agent-orchestration:builder-*) ;;
+      ''|agorch:builder-*) ;;
       *) exit 0 ;;
     esac
     printf '%s' '{"hookSpecificOutput":{"hookEventName":"SubagentStart","additionalContext":"'

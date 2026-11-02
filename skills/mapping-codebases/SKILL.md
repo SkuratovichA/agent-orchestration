@@ -11,7 +11,7 @@ The map is a lead, not proof. Before a plan or a brief relies on something the m
 
 ## Where it lives
 
-`codebase-map dir` creates the directory and prints it. The command is on the Bash tool's PATH while the plugin is enabled. The directory is `${XDG_CACHE_HOME:-~/.cache}/agent-orchestration/maps/<repo>-<key>/`: one per repository, shared by its worktrees, never inside the tree and never committed.
+`codebase-map dir` creates the directory and prints it. The command is on the Bash tool's PATH while the plugin is enabled. The directory is `${XDG_CACHE_HOME:-~/.cache}/agorch/maps/<repo>-<key>/`: one per repository, shared by its worktrees, never inside the tree and never committed.
 
 | File | Holds | Written by |
 | --- | --- | --- |
@@ -26,7 +26,7 @@ Most sessions only read the map.
 
 1. Run `codebase-map status`. It says when the map was built, how many commits behind it is, and which modules changed since.
 2. Read `INDEX.md` before you write the plan. Open a module file only for a module the task touches.
-3. Put what each builder needs into its brief as resolved context, the way `agent-orchestration:writing-briefs` says: the helpers to reuse with their paths, the shared package a new helper goes to, and the callers a change reaches. Builders are not sent to read the map.
+3. Put what each builder needs into its brief as resolved context, the way `agorch:writing-briefs` says: the helpers to reuse with their paths, the shared package a new helper goes to, and the callers a change reaches. Builders are not sent to read the map.
 4. If `status` lists a module the task touches under `refresh`, refresh that module before the plan relies on it.
 
 ## Building it
@@ -38,8 +38,8 @@ Build the map when there is none and the work spans more than one module, or mor
    - split a module past about 300 files with a smaller limit (`codebase-map modules 60`) and keep its lines;
    - drop generated and vendored trees.
    Five to forty modules is the range that works.
-2. Map each module with one `agent-orchestration:reader`, at most four at a time, using the module brief in `references/map-briefs.md` next to this file (`${CLAUDE_SKILL_DIR}/references/map-briefs.md`). A reader may take several small modules, writing one file for each. Each reader writes its own `modules/<slug>.md` files and returns five lines per module. Nothing else from its reading reaches this conversation.
-3. Write the index with one `agent-orchestration:reader` called with `model: 'sonnet', effort: 'high'`, because it is synthesis rather than reconnaissance, using the index brief from the same file. It reads every module file and writes `INDEX.md`.
+2. Map each module with one `agorch:reader`, at most four at a time, using the module brief in `references/map-briefs.md` next to this file (`${CLAUDE_SKILL_DIR}/references/map-briefs.md`). A reader may take several small modules, writing one file for each. Each reader writes its own `modules/<slug>.md` files and returns five lines per module. Nothing else from its reading reaches this conversation.
+3. Write the index with one `agorch:reader` called with `model: 'sonnet', effort: 'high'`, because it is synthesis rather than reconnaissance, using the index brief from the same file. It reads every module file and writes `INDEX.md`.
 4. Run `codebase-map stamp`.
 5. Read `INDEX.md` once. Check three of its claims against the code with the language server or grep. If a claim is wrong, send its module back to step 2.
 

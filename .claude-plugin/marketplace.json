@@ -1,10 +1,10 @@
 {
-  "name": "agent-orchestration",
+  "name": "agorch",
   "owner": { "name": "Aliaksandr Skuratovich" },
-  "metadata": { "description": "The agent-orchestration plugin: rules, agent types and hooks for spawning subagents and workflow stages." },
+  "metadata": { "description": "The agorch plugin: rules, agent types and hooks for spawning subagents and workflow stages." },
   "plugins": [
     {
-      "name": "agent-orchestration",
+      "name": "agorch",
       "source": "./",
       "description": "Rules for spawning subagents and workflow stages, with five agent types and the hooks that back them."
     }

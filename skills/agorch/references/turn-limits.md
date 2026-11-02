@@ -14,4 +14,4 @@ A run with no limit is not counted and has no row in the list, so a limit given 
 
 Every type's `maxTurns` is Claude Code's own hard stop, which no command moves and which is read only when the session starts: 10000 for the builders, 1000 for the others. A run cut there comes back marked partial and resumes with `SendMessage` the same way; the README's Reference says from which Claude Code version.
 
-No definition and no brief states a turn number, because a model told a tight budget may decline the task, scope it down or stop early. A brief sizes the task instead (`agent-orchestration:writing-briefs`, item 11). When a report says the limit was reached and little is left, raise the limit and resume; when much is left, re-scope and spawn again.
+No definition and no brief states a turn number, because a model told a tight budget may decline the task, scope it down or stop early. A brief sizes the task instead (`agorch:writing-briefs`, item 11). When a report says the limit was reached and little is left, raise the limit and resume; when much is left, re-scope and spawn again.

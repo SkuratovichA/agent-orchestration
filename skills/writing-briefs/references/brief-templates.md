@@ -6,7 +6,7 @@ The blocks in the first half are quoted from Anthropic's prompting guides, which
 
 ## The worker block
 
-A builder type this plugin ships receives `worker-brief-block.md` from the SubagentStart hook when it is spawned with the Agent tool, and its brief pastes nothing. The reader and the reviewers work from their own definitions and need no block. For any other agent that implements or runs commands, paste that file's contents at the top of the brief as they are: its first line says whose rules they are and that CLAUDE.md overrides them. The file sits in the `agent-orchestration` skill's `references/` directory.
+A builder type this plugin ships receives `worker-brief-block.md` from the SubagentStart hook when it is spawned with the Agent tool, and its brief pastes nothing. The reader and the reviewers work from their own definitions and need no block. For any other agent that implements or runs commands, paste that file's contents at the top of the brief as they are: its first line says whose rules they are and that CLAUDE.md overrides them. The file sits in the `agorch` skill's `references/` directory.
 
 ## Blocks to paste
 
@@ -112,7 +112,7 @@ Time matters here: do not spend time that can be avoided, and the earlier a corr
 
 ## Brief 1: a builder through the Agent tool
 
-Spawned as `agent-orchestration:builder-m`, so the model and the effort come from the definition and the worker block arrives through the hook (a builder has no turn limit).
+Spawned as `agorch:builder-m`, so the model and the effort come from the definition and the worker block arrives through the hook (a builder has no turn limit).
 
 ```text
 You are the implementer for this change.
@@ -149,7 +149,7 @@ Skills to load before the first edit: the skills that govern the files. Size: on
 
 ## Brief 2: a reader through the Agent tool
 
-Spawned as `agent-orchestration:reader`.
+Spawned as `agorch:reader`.
 
 ```text
 You are the reader for this question. Read-only: modify nothing.
@@ -174,8 +174,8 @@ When the reader's list includes a gate, add: "If it fails, return word for word 
 A stage has no Agent tool. The script pins the model, each stage runs as a plugin type (each type's definition pins its effort, so the stage options leave `effort` out), and the schema carries the empty-is-valid sentence.
 
 ```js
-const CMD = { model: 'haiku', agentType: 'agent-orchestration:reader' }  // no effort here: the type pins max, and a value here would override it
-const JUDGE = { model: 'sonnet', agentType: 'agent-orchestration:reviewer' }  // the type pins xhigh
+const CMD = { model: 'haiku', agentType: 'agorch:reader' }  // no effort here: the type pins max, and a value here would override it
+const JUDGE = { model: 'sonnet', agentType: 'agorch:reviewer' }  // the type pins xhigh
 
 const GATE = { type: 'object', properties: { exit: { type: 'integer' }, log: { type: 'string' }, failures: { type: 'array', items: { type: 'object', properties: { test: { type: 'string' }, expected: { type: 'string' }, actual: { type: 'string' }, frame: { type: 'string' } }, required: ['test'] } } }, required: ['exit', 'log', 'failures'] }
 const FINDINGS = { type: 'object', properties: { findings: { type: 'array', items: { type: 'object', properties: { claim: { type: 'string' }, verbatim: { type: 'string' }, locus: { type: 'string' } }, required: ['claim', 'verbatim', 'locus'] } } }, required: ['findings'] }
@@ -185,11 +185,11 @@ const gate = await agent('You are a Workflow stage and have no Agent tool.\nGoal
 const review = await agent('You are a Workflow stage and have no Agent tool.\nRead /abs/repo/src/report.ts lines 40-120 once. Report every issue you find, including ones you are uncertain about or consider low-severity; a separate verification step will filter. `verbatim` is an exact substring of the file; `locus` is `<path>:<line>`. Call the structured-output tool exactly once, at the very end, with your real content; an empty findings array is a valid answer. Size: one file, read once.', { ...JUDGE, schema: FINDINGS, label: 'review:report' })
 ```
 
-A stage that runs as `general-purpose` gets none of the plugin's rules on its own, and the documentation does not say the hook reaches a builder run as a stage, so the prompt of either opens with: "Read /abs/plugin/skills/agent-orchestration/references/worker-brief-block.md first; those are the rules you work under. You are a Workflow stage and have no Agent tool." Then one line saying whether it runs commands or only reads.
+A stage that runs as `general-purpose` gets none of the plugin's rules on its own, and the documentation does not say the hook reaches a builder run as a stage, so the prompt of either opens with: "Read /abs/plugin/skills/agorch/references/worker-brief-block.md first; those are the rules you work under. You are a Workflow stage and have no Agent tool." Then one line saying whether it runs commands or only reads.
 
 ## Brief 4: a batch of tasks for one builder
 
-Spawned as `agent-orchestration:builder-m`: five tasks that touch the same module, worked in order by one agent that keeps the context of the earlier ones. The batch rules (grouping, the ledger, `DECISION NEEDED`) are in the `agent-orchestration` skill's `references/batching.md`, and the worker block gives the builder the same rules through the hook.
+Spawned as `agorch:builder-m`: five tasks that touch the same module, worked in order by one agent that keeps the context of the earlier ones. The batch rules (grouping, the ledger, `DECISION NEEDED`) are in the `agorch` skill's `references/batching.md`, and the worker block gives the builder the same rules through the hook.
 
 ```text
 You are the implementer for this batch of five tasks in /abs/example-app. Work them in the order given, one at a time, and prove each with its own command before you start the next.

@@ -1,15 +1,17 @@
-# agent-orchestration
+# agorch
 
-A Claude Code plugin: the rules a session follows when it spawns subagents or workflow stages, and the agent types those rules name. It is a policy made of prompts and hooks. It decides which model does what, what a brief must contain and what a spawned agent may do; running the agents stays with Claude Code, and the plugin adds no task queue or locking of its own.
+agorch is short for agent orchestration; the plugin was called `agent-orchestration` until 0.12.0, and the GitHub repository keeps that name. A Claude Code plugin: the rules a session follows when it spawns subagents or workflow stages, and the agent types those rules name. It is a policy made of prompts and hooks. It decides which model does what, what a brief must contain and what a spawned agent may do; running the agents stays with Claude Code, and the plugin adds no task queue or locking of its own.
 
 ## Install
 
 ```sh
 claude plugin marketplace add SkuratovichA/agent-orchestration
-claude plugin install agent-orchestration@agent-orchestration
+claude plugin install agorch@agorch
 ```
 
-The same from inside a session: `/plugin marketplace add SkuratovichA/agent-orchestration`, then `/plugin install agent-orchestration@agent-orchestration`. A new session then starts with the line "The agent-orchestration plugin is active".
+The same from inside a session: `/plugin marketplace add SkuratovichA/agent-orchestration`, then `/plugin install agorch@agorch`. A new session then starts with the line "The agorch plugin is active".
+
+After a rename from `agent-orchestration`, the skills are `agorch:agorch`, `agorch:writing-briefs` and `agorch:mapping-codebases`, the agent types are `agorch:builder-m` and so on, and the codebase maps are looked for in `${XDG_CACHE_HOME:-~/.cache}/agorch/maps` (move an old `agent-orchestration/maps` there to keep them). Anything of yours that names the old skills or types, a CLAUDE.md or a permission rule, needs the new names.
 
 `jq` is optional. Without it the Bash-output check, the turn limit and the language-server check do nothing; the skills, the agents and the worker block work the same.
 
@@ -17,12 +19,12 @@ The same from inside a session: `/plugin marketplace add SkuratovichA/agent-orch
 
 | Path | What it is |
 | --- | --- |
-| `skills/agent-orchestration/` | The `agent-orchestration:agent-orchestration` skill: model and effort per stage, the agent roster, when a command runs directly and when it goes to a reader, several builders in one tree, staged verification, context economics |
-| `skills/agent-orchestration/references/worker-brief-block.md` | The short block of rules a builder works under |
-| `skills/agent-orchestration/references/` | Also the sections the skill points to when they are needed: language servers, several builders in one tree, staged verification and cheap swarms, turn limits, roster notes, the session's own budget |
-| `skills/writing-briefs/` | The `agent-orchestration:writing-briefs` skill: the brief skeleton, the blocks to paste, how to treat a report |
+| `skills/agorch/` | The `agorch:agorch` skill: model and effort per stage, the agent roster, when a command runs directly and when it goes to a reader, several builders in one tree, staged verification, context economics |
+| `skills/agorch/references/worker-brief-block.md` | The short block of rules a builder works under |
+| `skills/agorch/references/` | Also the sections the skill points to when they are needed: language servers, several builders in one tree, staged verification and cheap swarms, turn limits, roster notes, the session's own budget |
+| `skills/writing-briefs/` | The `agorch:writing-briefs` skill: the brief skeleton, the blocks to paste, how to treat a report |
 | `skills/writing-briefs/references/` | The brief templates and the Workflow-stage rules |
-| `skills/mapping-codebases/` | The `agent-orchestration:mapping-codebases` skill: reading, refreshing and building the per-repository codebase map |
+| `skills/mapping-codebases/` | The `agorch:mapping-codebases` skill: reading, refreshing and building the per-repository codebase map |
 | `agents/` | The agent types below |
 | `hooks/` | The hooks below, with a test file beside each script |
 | `bin/agent-turns` | The command that reads and moves a run's turn limit, on the Bash tool's PATH while the plugin is enabled |
@@ -36,13 +38,13 @@ These are the plugin's defaults. A user's or a project's CLAUDE.md overrides the
 
 | Agent type | Model, effort | Turn limit | Tools | For |
 | --- | --- | --- | --- | --- |
-| `agent-orchestration:reader` | haiku, max | 60 | Bash, Read, Grep, Glob, LSP, Skill | reconnaissance: follows a lead over several steps and returns the answer or where it got stuck, never raw output |
-| `agent-orchestration:builder-m` | sonnet, medium | none | all | the default implementer: a task or a batch of tasks whose brief leaves no architectural question open |
-| `agent-orchestration:builder-l` | sonnet, xhigh | none | all | only mission-critical work or work that needs long reasoning, never work that is merely large |
-| `agent-orchestration:reviewer` | sonnet, xhigh | 300 | Read, Grep, Glob, LSP, Skill | code review of a diff, a pull request or a whole batch: correctness, reuse, tests, style |
-| `agent-orchestration:reviewer-arch` | opus, high | 300 | Read, Grep, Glob, LSP, Skill | architectural review, only on request or when the plan marks the change as architecture-level |
+| `agorch:reader` | haiku, max | 60 | Bash, Read, Grep, Glob, LSP, Skill | reconnaissance: follows a lead over several steps and returns the answer or where it got stuck, never raw output |
+| `agorch:builder-m` | sonnet, medium | none | all | the default implementer: a task or a batch of tasks whose brief leaves no architectural question open |
+| `agorch:builder-l` | sonnet, xhigh | none | all | only mission-critical work or work that needs long reasoning, never work that is merely large |
+| `agorch:reviewer` | sonnet, xhigh | 300 | Read, Grep, Glob, LSP, Skill | code review of a diff, a pull request or a whole batch: correctness, reuse, tests, style |
+| `agorch:reviewer-arch` | opus, high | 300 | Read, Grep, Glob, LSP, Skill | architectural review, only on request or when the plan marks the change as architecture-level |
 
-Work is batched: twenty tasks are four or five builders, each given its tasks in order, and one reviewer reads the whole batch (`skills/agent-orchestration/references/batching.md`). A builder never decides an architectural question itself: it finishes the tasks that do not depend on it and ends its turn with a `DECISION NEEDED` report, and the orchestrator answers it with `SendMessage`.
+Work is batched: twenty tasks are four or five builders, each given its tasks in order, and one reviewer reads the whole batch (`skills/agorch/references/batching.md`). A builder never decides an architectural question itself: it finishes the tasks that do not depend on it and ends its turn with a `DECISION NEEDED` report, and the orchestrator answers it with `SendMessage`.
 
 The builders have no turn limit, because a batch takes many turns, and every non-reader type compacts its own context at 200K tokens (`autoCompactWindow` in its definition). The other types keep a runaway stop far above ordinary work (the reader about 3x the p99 of past runs, the reviewers sized for a batch). The plugin's hook enforces it, not Claude Code: it counts the run's tool rounds, notes the count at 75% of the limit and at the limit, and from then on refuses the run's tool calls with a reason, so the run ends with a report of what is done and what is left. The parent session moves the limit, or gives a builder one, whenever it wants and resumes a refused run with `SendMessage`:
 
@@ -66,7 +68,7 @@ Builders, reviewers and the reader navigate with the language server; the builde
 | SessionStart, on startup | `hooks/lsp-check.sh` | names a language server the project needs and does not have, unless its plugin is switched off in the settings; installs nothing |
 | SessionStart, on startup | `hooks/window-check.sh` | names a compaction window below 200K tokens in the settings or the environment; changes nothing |
 | SessionStart, on startup, clear and compact | `hooks/map-check.sh` | when a map of the repository exists, tells the session where it is, how stale it is and which modules changed, and points to `INDEX.md` and the `mapping-codebases` skill. Silent otherwise |
-| SubagentStart, matcher `^agent-orchestration:builder-` | `hooks/context.sh` | puts the worker block into the context of the two builder types. The reader and the reviewers work from their own definitions; built-in agents such as Explore and Plan, and other plugins' agents, get nothing |
+| SubagentStart, matcher `^agorch:builder-` | `hooks/context.sh` | puts the worker block into the context of the two builder types. The reader and the reviewers work from their own definitions; built-in agents such as Explore and Plan, and other plugins' agents, get nothing |
 | PreToolUse on Bash | `hooks/bash-output.sh` | in the main conversation only, adds a note, once per command, when a command's text does not bound its output; the command runs. It blocks nothing and grants no permission, and a simple command (a git state or history command with a cap, `ls`, a commit or a push) gets no note. A subagent's Bash gets nothing |
 | PreToolUse on every tool | `hooks/turn-budget.sh` | inside a run of one of this plugin's agent types that has a turn limit only, refuses a tool call once the run's tool rounds have reached its turn limit, with a reason that says the run ends with its report and the parent can raise the limit and resume it. `StructuredOutput` is never refused, so a schema stage can still return its result |
 | PostToolBatch | `hooks/turn-budget.sh` | inside a run of one of this plugin's agent types only, counts the tool rounds and adds a factual note at 75% of the turn limit and at the limit: the count so far, the limit, and what happens there. The limit is re-read on every call: the run's own limit set with `agent-turns`, else the session's for its type, else `references/turn-limits.tsv`. Any other agent, and the main conversation, get nothing |
@@ -145,7 +147,7 @@ Measured on 2026-10-18 over 3,169 subagent runs, a turn being one request. The p
 
 ### The codebase map
 
-Added in 0.10.0. The `agent-orchestration:mapping-codebases` skill keeps one map per repository in `${XDG_CACHE_HOME:-~/.cache}/agent-orchestration/maps/<repo>-<key>/`, outside the working tree, where `bin/codebase-map dir` creates and prints it. All worktrees of a repository share that directory, and nothing in it is ever committed. The map is a lead, not proof: a session confirms a claim with the language server or one grep before a plan relies on it, and when the code disagrees the code wins and that module is due for a refresh. The module readers run on the reader type (`haiku`) and the index reader on `sonnet`. `hooks/map-check.sh` tells a new session that a map exists and how stale it is, and the planning section of the `agent-orchestration` skill sends the orchestrator to its `INDEX.md`.
+Added in 0.10.0. The `agorch:mapping-codebases` skill keeps one map per repository in `${XDG_CACHE_HOME:-~/.cache}/agorch/maps/<repo>-<key>/`, outside the working tree, where `bin/codebase-map dir` creates and prints it. All worktrees of a repository share that directory, and nothing in it is ever committed. The map is a lead, not proof: a session confirms a claim with the language server or one grep before a plan relies on it, and when the code disagrees the code wins and that module is due for a refresh. The module readers run on the reader type (`haiku`) and the index reader on `sonnet`. `hooks/map-check.sh` tells a new session that a map exists and how stale it is, and the planning section of the `agorch` skill sends the orchestrator to its `INDEX.md`.
 
 ### Where the placement and plain-code rules come from
 
@@ -153,7 +155,7 @@ Added in 0.10.0 to the builders and the reviewer. In a test on a toy monorepo, `
 
 ### Figures the skills point to
 
-Moved out of `skills/agent-orchestration/SKILL.md` in 0.10.0 so that the skill, which a compaction re-attaches only up to its first 5K tokens, carries rules and not measurements. None of the first three was recorded with a date.
+Moved out of `skills/agorch/SKILL.md` in 0.10.0 so that the skill, which a compaction re-attaches only up to its first 5K tokens, carries rules and not measurements. None of the first three was recorded with a date.
 
 - A Haiku reader cost about $0.10 a run, which is why the effort that keeps it from skipping a check (`max`) is cheap for it.
 - Over two weeks of runs, a Sonnet reader at `high` cost about 19 times a Haiku one, which is why `max` belongs to Haiku only.

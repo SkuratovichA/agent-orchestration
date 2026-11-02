@@ -15,7 +15,7 @@ type=${rest%%|*}
 tool=${rest#*|}
 [ -n "$agent" ] || exit 0
 case "$type" in
-  agent-orchestration:?*) name=${type#agent-orchestration:} ;;
+  agorch:?*) name=${type#agorch:} ;;
   *) exit 0 ;;
 esac
 case "$event" in

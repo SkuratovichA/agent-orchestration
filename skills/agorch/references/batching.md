@@ -19,7 +19,7 @@ About five tasks per agent is where to start, not a cap. Group by line of work, 
 
 ## What the brief holds
 
-The sections of `agent-orchestration:writing-briefs` are written once for the whole batch (scope, owned paths, side effects, output contract). The tasks come as a numbered list in the order to do them, and each task carries its own loci, acceptance criteria and proving command:
+The sections of `agorch:writing-briefs` are written once for the whole batch (scope, owned paths, side effects, output contract). The tasks come as a numbered list in the order to do them, and each task carries its own loci, acceptance criteria and proving command:
 
 ```
 # Tasks, in this order
@@ -50,4 +50,4 @@ SendMessage({ to: '<agent id>', message: 'Decision: option B, because <reason>. 
 
 ## Reviewing a batch
 
-One `agent-orchestration:reviewer` reads the whole batch, not one per task: give it the combined diff as a file, the list of tasks with their intent, and the tests that prove them. A separate review per task repeats the start and misses what the tasks do to each other. Use `reviewer-arch` only when the plan marks a task as architecture-level.
+One `agorch:reviewer` reads the whole batch, not one per task: give it the combined diff as a file, the list of tasks with their intent, and the tests that prove them. A separate review per task repeats the start and misses what the tasks do to each other. Use `reviewer-arch` only when the plan marks a task as architecture-level.

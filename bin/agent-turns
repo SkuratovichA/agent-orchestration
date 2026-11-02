@@ -3,7 +3,7 @@
 root=$(cd "$(dirname "$0")/.." && pwd)
 . "$root/hooks/lib.sh"
 prog=agent-turns
-sub=agent-orchestration-bash-output
+sub=agorch-bash-output
 tab=$(printf '\t')
 
 usage() {
@@ -15,7 +15,7 @@ usage: agent-turns                           list the runs of this session: id, 
        agent-turns --type <type>             show the limit of an agent type in this session
        agent-turns --type <type> <turns>     set the limit of an agent type in this session
        agent-turns --type <type> default     remove it
-<type> is builder-m or agent-orchestration:builder-m. <turns> is a positive integer. The source of a limit is run (set for the run), session (set for its type in this session) or default (references/turn-limits.tsv); - means none. A limit of the type applies to the running and the later runs of the type that have no limit of their own. A limit above the frontmatter maxTurns of the agent has no effect, because Claude Code stops the run there.
+<type> is builder-m or agorch:builder-m. <turns> is a positive integer. The source of a limit is run (set for the run), session (set for its type in this session) or default (references/turn-limits.tsv); - means none. A limit of the type applies to the running and the later runs of the type that have no limit of their own. A limit above the frontmatter maxTurns of the agent has no effect, because Claude Code stops the run there.
 USAGE
 }
 
@@ -44,7 +44,7 @@ find_dir() {
   done
   return 1
 }
-dir=$(find_dir) || fail 1 "no state directory of the agent-orchestration plugin holds files of session $session"
+dir=$(find_dir) || fail 1 "no state directory of the agorch plugin holds files of session $session"
 
 safe_id() { # value; a part of a file name
   case "$1" in
@@ -92,7 +92,7 @@ write_limit() { # file value
 
 if [ "$1" = --type ]; then
   [ $# -ge 2 ] && [ $# -le 3 ] || bad_usage '--type takes an agent type and at most one more argument'
-  name=${2#agent-orchestration:}
+  name=${2#agorch:}
   safe_id "$name" && [ -f "$root/agents/$name.md" ] || fail 1 "unknown agent type $2: it must name an agent of this plugin"
   file="$dir/$session.typelimit.$name"
   if [ $# -eq 3 ]; then

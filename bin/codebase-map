@@ -1,5 +1,5 @@
 #!/bin/sh
-# Manages the per-repository codebase map cache of this plugin: locates the cache directory outside the repository, says how stale the map is, proposes how to split the repository into modules and stamps the commit a map was built at. The skill agent-orchestration:mapping-codebases says how a map is written and read. Uses git and POSIX tools.
+# Manages the per-repository codebase map cache of this plugin: locates the cache directory outside the repository, says how stale the map is, proposes how to split the repository into modules and stamps the commit a map was built at. The skill agorch:mapping-codebases says how a map is written and read. Uses git and POSIX tools.
 root=$(cd "$(dirname "$0")/.." && pwd)
 . "$root/hooks/lib.sh"
 prog=codebase-map
@@ -12,7 +12,7 @@ usage: codebase-map dir                   create and print the map directory of 
        codebase-map status --oneline      the same as one sentence; prints nothing when no map exists
        codebase-map modules [max-files]   propose modules as TSV (path, slug, files) from the tracked files; default max-files is 120
        codebase-map stamp                 record HEAD as the commit the map was built at
-The map directory is ${XDG_CACHE_HOME:-$HOME/.cache}/agent-orchestration/maps/<name>-<key>, shared by every worktree of a repository. It holds commit (the build commit), modules.tsv (the module list), modules/<slug>.md and INDEX.md. Changes are counted from the committed history (git diff <commit> HEAD), not from the working tree.
+The map directory is ${XDG_CACHE_HOME:-$HOME/.cache}/agorch/maps/<name>-<key>, shared by every worktree of a repository. It holds commit (the build commit), modules.tsv (the module list), modules/<slug>.md and INDEX.md. Changes are counted from the committed history (git diff <commit> HEAD), not from the working tree.
 USAGE
 }
 
@@ -22,7 +22,7 @@ locate() {
   [ -n "$common" ] || fail 1 'not inside a git repository'
   name=$(basename "$(dirname "$common")" | sed 's/[^A-Za-z0-9._-]/-/g')
   key=$(printf %s "$common" | cksum | awk '{print $1}')
-  mapdir="${XDG_CACHE_HOME:-$HOME/.cache}/agent-orchestration/maps/$name-$key"
+  mapdir="${XDG_CACHE_HOME:-$HOME/.cache}/agorch/maps/$name-$key"
 }
 
 # Sets built (none|ok|foreign: the repository does not have the commit), sha (7 characters), behind (commits in c..HEAD), ancestor (1 when the build commit is an ancestor of HEAD, else 0), changed (file list), nchanged, refresh (comma list), nunmapped.

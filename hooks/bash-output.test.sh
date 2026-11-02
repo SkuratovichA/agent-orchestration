@@ -116,7 +116,7 @@ expect note "git branch -a" s1 "" false 'git branch -a'
 expect note "git show prints a patch" s1 "" false 'git show HEAD'
 expect pass "the same note never repeats" s1 "" false 'git show HEAD'
 
-state="$CLAUDE_PLUGIN_DATA/agent-orchestration-bash-output"
+state="$CLAUDE_PLUGIN_DATA/agorch-bash-output"
 check() { # label command... ; the command succeeds when the row holds
   label=$1; shift
   if "$@"; then echo "ok    $label"; else echo "FAIL  $label"; fail=1; fi
@@ -146,7 +146,7 @@ check "no marker directory passes" [ "$got" = pass ]
 for var in XDG_RUNTIME_DIR TMPDIR; do
   base=$(mktemp -d)
   got=$(jq -n '{session_id: "s7", tool_input: {command: "git log --all"}}' | env -u CLAUDE_PLUGIN_DATA -u XDG_RUNTIME_DIR -u TMPDIR "$var=$base" ${HOOK_SH:-sh} "$hook" | decision)
-  landed() { [ "$got" = note ] && [ -n "$(ls "$base/agent-orchestration-bash-output" 2>/dev/null)" ]; }
+  landed() { [ "$got" = note ] && [ -n "$(ls "$base/agorch-bash-output" 2>/dev/null)" ]; }
   check "without a plugin data directory the marker goes under $var" landed
   rm -rf "$base"
 done
