@@ -9,8 +9,8 @@ CLAUDE_CONFIG_DIR="$tmp/config"; TMPDIR="$tmp/tmp"; CLAUDE_CODE_SESSION_ID=fake-
 export CLAUDE_CONFIG_DIR TMPDIR CLAUDE_CODE_SESSION_ID
 unset XDG_RUNTIME_DIR CLAUDE_PLUGIN_DATA
 # The plugin's data directory for the hooks: the command is not given it, as the Bash tool does not give it, and finds the state directory under CLAUDE_CONFIG_DIR.
-data="$tmp/config/plugins/data/agent-orchestration-test"
-state="$data/agent-orchestration-bash-output"
+data="$tmp/config/plugins/data/agorch-test"
+state="$data/agorch-bash-output"
 mkdir -p "$data"
 fail=0
 check() { # label command... ; the command succeeds when the row holds
@@ -124,9 +124,9 @@ run --type x
 check "showing the type does not show a run's limit" equal "$(row x)" "x 30 session"
 run a1 default
 check "removing the run's limit gives the type's back" equal "$(row a1)" "a1 x 5 30 session"
-run --type agent-orchestration:x 31
+run --type agorch:x 31
 check "the type is accepted with the plugin prefix" equal "$(row x)" "x 31 session"
-run --type agent-orchestration:x
+run --type agorch:x
 check "the type is shown with the plugin prefix" equal "$(row x)" "x 31 session"
 check "the prefix makes no second file" file_is fake-session.typelimit.x 31
 run --type x 101
@@ -148,7 +148,7 @@ case "$err" in "agent-turns: unknown agent type nope"*) known=1 ;; *) known=0 ;;
 check "that line begins with the command's name and names the type" equal "$known" 1
 run --type nope 5
 check "an unknown type is not set" no_file fake-session.typelimit.nope
-run --type agent-orchestration:../x 5
+run --type agorch:../x 5
 check "a type that is no file name exits 1" equal "$rc" 1
 run --type other-plugin:x 5
 check "a type of another plugin exits 1" equal "$rc" 1
@@ -186,8 +186,8 @@ check "with an unsafe session id the command exits 1" equal "$rc" 1
 check "with an unsafe session id it says so on one line of stderr" equal "$(wc -l < "$tmp/err" | tr -d ' ') $(cut -c1-13 "$tmp/err")" "1 agent-turns: "
 
 # Where the state directory is found: the first directory that holds the session's marker, failing that the first that holds a file of the session.
-lib="agent-orchestration-bash-output"
-other="$tmp/config/plugins/data/agent-orchestration-zother/$lib"
+lib="agorch-bash-output"
+other="$tmp/config/plugins/data/agorch-zother/$lib"
 fresh
 rm -f "$state/fake-session.session"
 mkdir -p "$other"; chmod 700 "$other"
@@ -241,27 +241,29 @@ check "the marker is how the command finds the directory: an empty listing" equa
 real_cli="$real_root/bin/agent-turns"
 out=$(${HOOK_SH:-sh} "$real_cli" --type reader)
 check "the shipped command shows the shipped limit of the reader" equal "$(printf '%s\n' "$out" | awk '$1 == "reader" { $1 = $1; print }')" "reader 60 default"
-out=$(${HOOK_SH:-sh} "$real_cli" --type agent-orchestration:builder-m)
-check "and of builder-m, with the prefix" equal "$(printf '%s\n' "$out" | awk '$1 == "builder-m" { $1 = $1; print }')" "builder-m 360 default"
+out=$(${HOOK_SH:-sh} "$real_cli" --type agorch:builder-m)
+check "and of builder-m, with the prefix, which has none" equal "$(printf '%s\n' "$out" | awk '$1 == "builder-m" { $1 = $1; print }')" "builder-m - -"
+out=$(${HOOK_SH:-sh} "$real_cli" --type reviewer)
+check "and of the reviewer" equal "$(printf '%s\n' "$out" | awk '$1 == "reviewer" { $1 = $1; print }')" "reviewer 300 default"
 i=0
-while [ "$i" -lt 8 ]; do hook_as PostToolBatch e1 agent-orchestration:x > /dev/null; i=$((i + 1)); done
+while [ "$i" -lt 8 ]; do hook_as PostToolBatch e1 agorch:x > /dev/null; i=$((i + 1)); done
 run e1
 check "the hook's counter is what the command lists" equal "$(row e1)" "e1 x 8 8 default"
-deny=$(hook_as PreToolUse e1 agent-orchestration:x)
+deny=$(hook_as PreToolUse e1 agorch:x)
 check "a run at its limit of 8 is refused" equal "$(printf '%s' "$deny" | jq -r '.hookSpecificOutput.permissionDecision')" deny
 run e1 12
 check "raising its limit exits 0" equal "$rc" 0
 check "raising its limit shows 12 for the run" equal "$(row e1)" "e1 x 8 12 run"
-check "the next call of the run goes through" equal "$(hook_as PreToolUse e1 agent-orchestration:x)" ""
+check "the next call of the run goes through" equal "$(hook_as PreToolUse e1 agorch:x)" ""
 run e1 3
-check "lowering the limit below the rounds refuses the next call" equal "$(hook_as PreToolUse e1 agent-orchestration:x | jq -r '.hookSpecificOutput.permissionDecision')" deny
+check "lowering the limit below the rounds refuses the next call" equal "$(hook_as PreToolUse e1 agorch:x | jq -r '.hookSpecificOutput.permissionDecision')" deny
 run e1 default
-check "default puts the table's limit back: refused at 8 of 8" equal "$(hook_as PreToolUse e1 agent-orchestration:x | jq -r '.hookSpecificOutput.permissionDecision')" deny
+check "default puts the table's limit back: refused at 8 of 8" equal "$(hook_as PreToolUse e1 agorch:x | jq -r '.hookSpecificOutput.permissionDecision')" deny
 run --type x 10
-check "a limit of the type lets the run through" equal "$(hook_as PreToolUse e1 agent-orchestration:x)" ""
+check "a limit of the type lets the run through" equal "$(hook_as PreToolUse e1 agorch:x)" ""
 i=0
-while [ "$i" -lt 10 ]; do hook_as PostToolBatch e2 agent-orchestration:x > /dev/null; i=$((i + 1)); done
-reason=$(hook_as PreToolUse e2 agent-orchestration:x | jq -r '.hookSpecificOutput.permissionDecisionReason')
+while [ "$i" -lt 10 ]; do hook_as PostToolBatch e2 agorch:x > /dev/null; i=$((i + 1)); done
+reason=$(hook_as PreToolUse e2 agorch:x | jq -r '.hookSpecificOutput.permissionDecisionReason')
 case "$reason" in *"has made 10 tool rounds and its turn limit is 10,"*) refused=1 ;; *) refused=0 ;; esac
 check "and a run of the type that starts later is bound by it: 10 rounds, then refused" equal "$refused" 1
 

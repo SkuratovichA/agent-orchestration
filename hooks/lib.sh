@@ -28,7 +28,7 @@ state_dir() {
   [ -z "$CLAUDE_PLUGIN_DATA" ] || mkdir -p "$CLAUDE_PLUGIN_DATA" 2>/dev/null
   for base in "$CLAUDE_PLUGIN_DATA" "$XDG_RUNTIME_DIR" "$TMPDIR"; do
     [ -n "$base" ] && [ -d "$base" ] || continue
-    dir="$base/agent-orchestration-bash-output"
+    dir="$base/agorch-bash-output"
     [ -d "$dir" ] || mkdir -m 700 "$dir" 2>/dev/null
     if [ -d "$dir" ] && [ ! -L "$dir" ] && [ -O "$dir" ]; then
       printf '%s\n' "$dir"

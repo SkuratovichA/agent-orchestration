@@ -2,7 +2,7 @@
 # Cases for cleanup.sh. Run: sh hooks/cleanup.test.sh
 hook="$(cd "$(dirname "$0")" && pwd)/cleanup.sh"
 CLAUDE_PLUGIN_DATA=$(mktemp -d); export CLAUDE_PLUGIN_DATA
-state="$CLAUDE_PLUGIN_DATA/agent-orchestration-bash-output"
+state="$CLAUDE_PLUGIN_DATA/agorch-bash-output"
 fail=0
 check() { # label command... ; the command succeeds when the row holds
   label=$1; shift

@@ -39,7 +39,7 @@ hookrun() { # directory
 # 1
 fresh; put "$repo" a.txt; commit "$repo" init
 out=$(run "$repo" dir); p=$(body "$out")
-case "$p" in "$XDG_CACHE_HOME/agent-orchestration/maps/"*) r=ok ;; *) r="got: $p" ;; esac
+case "$p" in "$XDG_CACHE_HOME/agorch/maps/"*) r=ok ;; *) r="got: $p" ;; esac
 [ -d "$p/modules" ] || r="no modules/ in $p"
 [ "$(code "$out")" = exit=0 ] || r="got: $out"
 check "dir prints a path under the cache and creates modules/" "$r"
@@ -113,7 +113,7 @@ out=$(hookrun "$repo"); [ "$out" = "exit=0" ] && r=ok || r="got: $out"; check "h
 run "$repo" stamp >/dev/null
 out=$(hookrun "$repo"); ctx=$(body "$out" | jq -r '.hookSpecificOutput.additionalContext' 2>/dev/null)
 has "hook context names INDEX.md" "$ctx" "INDEX.md"
-has "hook context names the skill" "$ctx" "agent-orchestration:mapping-codebases"
+has "hook context names the skill" "$ctx" "agorch:mapping-codebases"
 [ "$(code "$out")" = "exit=0" ] && r=ok || r="got: $out"; check "hook exits 0 with a map" "$r"
 
 # 11
@@ -174,7 +174,7 @@ lacks "and not left unmapped" "$out" "unmapped"
 n=$((n + 1)); XDG_CACHE_HOME="$TMPDIR/c$n/ca che"; export XDG_CACHE_HOME; repo="$TMPDIR/c$n/re po"; mkdir -p "$repo"; git -C "$repo" init -q
 put "$repo" a.txt; commit "$repo" init
 out=$(run "$repo" stamp); has "stamp works with spaces in both paths" "$out" "stamped "
-out=$(run "$repo" status); has "status works with spaces in both paths" "$out" "map: $XDG_CACHE_HOME/agent-orchestration/maps/re-po-"
+out=$(run "$repo" status); has "status works with spaces in both paths" "$out" "map: $XDG_CACHE_HOME/agorch/maps/re-po-"
 has "status after a stamp with spaces: 0 commits behind" "$out" "(0 commits behind HEAD"
 out=$(hookrun "$repo"); ctx=$(body "$out" | jq -r '.hookSpecificOutput.additionalContext' 2>/dev/null)
 has "the hook works with spaces in both paths" "$ctx" "INDEX.md"

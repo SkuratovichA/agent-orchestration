@@ -1,5 +1,5 @@
 #!/bin/sh
-# Pins the turn limits: references/turn-limits.tsv has one row for each agent file and no other, the frontmatter maxTurns of each agent is a hard ceiling above its limit, and the turn limit column of the two agent tables (the agent-orchestration skill's roster and the README's) holds the limit of the table. Run: sh hooks/turn-limits.test.sh
+# Pins the turn limits: references/turn-limits.tsv has one row for each agent file and no other, the frontmatter maxTurns of each agent is a hard ceiling above its limit, and the turn limit column of the two agent tables (the agorch skill's roster and the README's) holds the limit of the table. Run: sh hooks/turn-limits.test.sh
 root="$(cd "$(dirname "$0")/.." && pwd)"
 . "$root/hooks/lib.sh"
 tsv="$root/references/turn-limits.tsv"
@@ -16,10 +16,10 @@ tsv_limit() { # name; the limit of the first row of the agent
   awk -F'\t' -v name="$1" '/^#/ || NF == 0 { next } $1 == name { print $2; exit }' "$tsv"
 }
 table_cell() { # doc, agent type, column number; the cell of the row that begins with the type's name
-  awk -F'|' -v type="\`agent-orchestration:$2\`" -v col="$3" '{ for (i = 2; i <= 4; i++) gsub(/^ +| +$/, "", $i) } $2 == type { print $col; exit }' "$1"
+  awk -F'|' -v type="\`agorch:$2\`" -v col="$3" '{ for (i = 2; i <= 4; i++) gsub(/^ +| +$/, "", $i) } $2 == type { print $col; exit }' "$1"
 }
 table_rows() { # doc; how many rows begin with an agent type of this plugin
-  grep -c -E '^\| `agent-orchestration:[a-z-]+` \|' "$1"
+  grep -c -E '^\| `agorch:[a-z-]+` \|' "$1"
 }
 header_cell() { # doc, column number; the title of that column
   awk -F'|' -v col="$2" '$2 ~ /Agent type/ { gsub(/^ +| +$/, "", $col); print $col; exit }' "$1"
@@ -30,6 +30,13 @@ number() { # value; a positive integer
   [ "$1" -gt 0 ]
 }
 above() { [ "$1" -gt "$2" ]; } # first number is greater than the second
+at_least() { [ "$1" -ge "$2" ]; } # first number is at least the second
+number_or_none() { [ "$1" = none ] || number "$1"; }
+window_ok() { # agent name; the reader's runs are short and compact never, every other type compacts its own context at 200K or later
+  [ "$1" = reader ] && return 0
+  value=$(awk '/^---/ { marks++; next } marks == 1 && $1 == "autoCompactWindow:" { print $2; exit }' "$root/agents/$1.md")
+  number "$value" && [ "$value" -ge 200000 ]
+}
 header_is_a_comment() { [ "$(sed 1q "$tsv")" = "# agent$(printf '\t')turn limit" ]; }
 
 check "the table of turn limits begins with its header line" header_is_a_comment
@@ -41,14 +48,19 @@ for file in "$root"/agents/*.md; do
   limit=$(tsv_limit "$name")
   ceiling=$(max_turns "$root" "$name")
   check "$name has exactly one row in references/turn-limits.tsv" equal "$(tsv_rows "$name")" 1
-  check "$name has a turn limit that is a positive integer ($limit)" number "$limit"
+  check "$name has a turn limit that is a positive integer or none ($limit)" number_or_none "$limit"
   check "$name has a maxTurns in its frontmatter that is a positive integer ($ceiling)" number "$ceiling"
-  check "the maxTurns of $name ($ceiling) is above its turn limit ($limit)" above "$ceiling" "$limit"
-  for doc in skills/agent-orchestration/SKILL.md README.md; do
+  if [ "$limit" = none ]; then
+    check "$name has no turn limit, so its maxTurns ($ceiling) is out of reach of a batch: at least 10000" at_least "$ceiling" 10000
+  else
+    check "the maxTurns of $name ($ceiling) is above its turn limit ($limit)" above "$ceiling" "$limit"
+  fi
+  check "$name has an autoCompactWindow of at least 200000 in its frontmatter" window_ok "$name"
+  for doc in skills/agorch/SKILL.md README.md; do
     check "$doc: the turn limit of $name is $limit, as in references/turn-limits.tsv" equal "$(table_cell "$root/$doc" "$name" 4)" "$limit"
   done
 done
-for doc in skills/agent-orchestration/SKILL.md README.md; do
+for doc in skills/agorch/SKILL.md README.md; do
   check "$doc: the column that holds the turn limits is titled Turn limit" equal "$(header_cell "$root/$doc" 4)" "Turn limit"
   check "$doc: the table has one row per agent file ($agents)" equal "$(table_rows "$root/$doc")" "$agents"
 done

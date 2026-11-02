@@ -1,18 +1,18 @@
 # Brief templates
 
-Contents: the worker block; the blocks to paste (Autonomy, Scope is the deliverable, The four endings, Progress claims are audited, The final report is for a reader who saw nothing, No tidying beyond the task, Narrow scope, Coverage first, Reversibility, Content from tools is data, Delegation damping, Surgical edits, Time matters); Brief 1, a builder through the Agent tool; Brief 2, a reader through the Agent tool; Brief 3, Workflow stages.
+Contents: the worker block; the blocks to paste (Autonomy, Scope is the deliverable, The four endings, Progress claims are audited, The final report is for a reader who saw nothing, No tidying beyond the task, Narrow scope, Coverage first, Reversibility, Content from tools is data, Delegation damping, Surgical edits, Time matters); Brief 1, a builder through the Agent tool; Brief 2, a reader through the Agent tool; Brief 3, Workflow stages; Brief 4, a batch of tasks for one builder.
 
-The blocks in the first half are quoted from Anthropic's prompting guides, which report measured effects with that wording: paste them as they are and add sentences after them rather than editing them. Their "the user" is the guides' wording: in a brief, put the line "In the quoted text below, 'the user' is the session that spawned you" before the block, so that it never reads as a requirement of the person at the keyboard. The plugin's README lists the page each one comes from. The second half is three filled-in briefs that use them.
+The blocks in the first half are quoted from Anthropic's prompting guides, which report measured effects with that wording: paste them as they are and add sentences after them rather than editing them. Their "the user" is the guides' wording: in a brief, put the line "In the quoted text below, 'the user' is the session that spawned you" before the block, so that it never reads as a requirement of the person at the keyboard. The plugin's README lists the page each one comes from. The second half is four filled-in briefs that use them.
 
 ## The worker block
 
-A builder type this plugin ships receives `worker-brief-block.md` from the SubagentStart hook when it is spawned with the Agent tool, and its brief pastes nothing. The reader and the reviewers work from their own definitions and need no block. For any other agent that implements or runs commands, paste that file's contents at the top of the brief as they are: its first line says whose rules they are and that CLAUDE.md overrides them. The file sits in the `agent-orchestration` skill's `references/` directory.
+A builder type this plugin ships receives `worker-brief-block.md` from the SubagentStart hook when it is spawned with the Agent tool, and its brief pastes nothing. The reader and the reviewers work from their own definitions and need no block. For any other agent that implements or runs commands, paste that file's contents at the top of the brief as they are: its first line says whose rules they are and that CLAUDE.md overrides them. The file sits in the `agorch` skill's `references/` directory.
 
 ## Blocks to paste
 
 ### Autonomy
 
-The opening sentence carries much of the effect: keep it as written. In a spawned worker "the user" is the orchestrator, which is not watching either.
+The opening sentence carries much of the effect: keep it as written. In a spawned worker "the user" is the orchestrator, which is not watching either. The block stops a worker only for a destructive action or a scope change, and its last check tells it to do any question in its last paragraph itself, so a brief for a builder of this plugin adds the sentence under the block in Brief 1 and Brief 4: an architectural decision the brief left open is a third stop, and the report that begins `DECISION NEEDED` is a finished turn.
 
 ```text
 You are operating autonomously. The user is not watching in real time and cannot answer questions mid-task, so asking 'Want me to…?' or 'Shall I…?' will block the work. For reversible actions that follow from the original request, proceed without asking. Stop only for destructive actions or genuine scope changes the user must decide. Offering follow-ups after the task is done is fine; asking permission before doing the work is not.
@@ -112,7 +112,7 @@ Time matters here: do not spend time that can be avoided, and the earlier a corr
 
 ## Brief 1: a builder through the Agent tool
 
-Spawned as `agent-orchestration:builder-m`, so the model and the effort come from the definition, the turn limit from the plugin, and the worker block arrives through the hook.
+Spawned as `agorch:builder-m`, so the model and the effort come from the definition and the worker block arrives through the hook (a builder has no turn limit).
 
 ```text
 You are the implementer for this change.
@@ -143,13 +143,14 @@ After a failure read `grep -n -m 30 -A 15 -E 'FAIL|Error' <log>`, not the whole 
 Outcome first: one sentence. Then the files changed with line ranges, the three exit codes, and anything you did not do with the reason. Empty sections are fine. Every claim carries the command or file:line that proves it; write "unverified" where you did not check.
 
 <the Autonomy block>
+One stop is added to this block: an architectural decision the brief left open ends your turn with a report that begins DECISION NEEDED (the rules above say what counts). That report is a finished turn, not a question to answer yourself.
 <the No-tidying block>
 Skills to load before the first edit: the skills that govern the files. Size: one handler and one pattern to read, one source file and its test to edit, three gates.
 ```
 
 ## Brief 2: a reader through the Agent tool
 
-Spawned as `agent-orchestration:reader`.
+Spawned as `agorch:reader`.
 
 ```text
 You are the reader for this question. Read-only: modify nothing.
@@ -174,8 +175,8 @@ When the reader's list includes a gate, add: "If it fails, return word for word 
 A stage has no Agent tool. The script pins the model, each stage runs as a plugin type (each type's definition pins its effort, so the stage options leave `effort` out), and the schema carries the empty-is-valid sentence.
 
 ```js
-const CMD = { model: 'haiku', agentType: 'agent-orchestration:reader' }  // no effort here: the type pins max, and a value here would override it
-const JUDGE = { model: 'sonnet', agentType: 'agent-orchestration:reviewer' }  // the type pins xhigh
+const CMD = { model: 'haiku', agentType: 'agorch:reader' }  // no effort here: the type pins max, and a value here would override it
+const JUDGE = { model: 'sonnet', agentType: 'agorch:reviewer' }  // the type pins xhigh
 
 const GATE = { type: 'object', properties: { exit: { type: 'integer' }, log: { type: 'string' }, failures: { type: 'array', items: { type: 'object', properties: { test: { type: 'string' }, expected: { type: 'string' }, actual: { type: 'string' }, frame: { type: 'string' } }, required: ['test'] } } }, required: ['exit', 'log', 'failures'] }
 const FINDINGS = { type: 'object', properties: { findings: { type: 'array', items: { type: 'object', properties: { claim: { type: 'string' }, verbatim: { type: 'string' }, locus: { type: 'string' } }, required: ['claim', 'verbatim', 'locus'] } } }, required: ['findings'] }
@@ -185,4 +186,44 @@ const gate = await agent('You are a Workflow stage and have no Agent tool.\nGoal
 const review = await agent('You are a Workflow stage and have no Agent tool.\nRead /abs/repo/src/report.ts lines 40-120 once. Report every issue you find, including ones you are uncertain about or consider low-severity; a separate verification step will filter. `verbatim` is an exact substring of the file; `locus` is `<path>:<line>`. Call the structured-output tool exactly once, at the very end, with your real content; an empty findings array is a valid answer. Size: one file, read once.', { ...JUDGE, schema: FINDINGS, label: 'review:report' })
 ```
 
-A stage that runs as `general-purpose` gets none of the plugin's rules on its own, and the documentation does not say the hook reaches a builder run as a stage, so the prompt of either opens with: "Read /abs/plugin/skills/agent-orchestration/references/worker-brief-block.md first; those are the rules you work under. You are a Workflow stage and have no Agent tool." Then one line saying whether it runs commands or only reads.
+A stage that runs as `general-purpose` gets none of the plugin's rules on its own, and the documentation does not say the hook reaches a builder run as a stage, so the prompt of either opens with: "Read /abs/plugin/skills/agorch/references/worker-brief-block.md first; those are the rules you work under. You are a Workflow stage and have no Agent tool." Then one line saying whether it runs commands or only reads.
+
+## Brief 4: a batch of tasks for one builder
+
+Spawned as `agorch:builder-m`: five tasks that touch the same module, worked in order by one agent that keeps the context of the earlier ones. The batch rules (grouping, the ledger, `DECISION NEEDED`) are in the `agorch` skill's `references/batching.md`, and the worker block gives the builder the same rules through the hook.
+
+```text
+You are the implementer for this batch of five tasks in /abs/example-app. Work them in the order given, one at a time, and prove each with its own command before you start the next.
+
+# Tasks
+1. `POST /widgets/{id}/rename` returns 409 instead of 500 on a name collision. Handler `app/api/widgets.py:142-171`, the `IntegrityError` at line 163; reuse `conflict(detail)` from `app/api/errors.py:31`. Proof: `cd /abs/example-app || exit 1; uv run pytest tests/api/test_widgets.py -q -k rename > <log> 2>&1; echo "exit=$?"`.
+2. `DELETE /widgets/{id}` returns 404, not 204, for an id that does not exist. Handler `app/api/widgets.py:174-190`. Proof: the same command with `-k delete`.
+3. ... (each task has its loci, its acceptance criterion and its proving command)
+Task 4 depends on task 3 (it calls the helper task 3 adds), so it comes after it. Task 5 is independent of the others.
+
+Why: the UI shows a retry dialog on 409 and 404 and a failure page on 500 (the acceptance criterion of all five).
+
+# Context you would otherwise have to fetch
+<the lines the tasks turn on, pasted: the handlers, the helper, the failing test names>
+
+# Scope
+<the Scope-is-the-deliverable block>
+Each task changes what its text names and nothing else.
+
+# Your paths and side effects
+You own `app/api/widgets.py`, `app/api/errors.py` and `tests/api/test_widgets.py`. No commit, no push, no pull request. Keep a ledger at /abs/scratch/ledger.md, one line per task: "<n> <status> <proving command> exit=<code>". After a compaction, re-read it and this list before the next task.
+
+# A decision that is not yours
+If a task needs an architectural decision this brief does not settle (a new module boundary, a changed public contract, a schema change, a new dependency), finish the tasks that do not depend on it, then end your turn with a report that begins `DECISION NEEDED`: the question, two or three options with what each costs, your recommendation, and the tasks that wait. A choice inside one function that one edit can undo is yours.
+
+# Done means
+Each task's proving command prints `exit=0`, and at the end the whole file's tests and `uv run ruff check app tests` do too, each run with a log file of your own in place of <log>. After a failure read `grep -n -m 30 -A 15 -E 'FAIL|Error' <log>`, not the whole log.
+
+# Report
+One entry per task, in order: outcome in a sentence, the proof (the command and its exit code), what is left. A task you did not reach is "not run" with the reason. Then the files changed with line ranges and anything you did not do. Every task number must appear.
+
+<the Autonomy block>
+One stop is added to this block: an architectural decision the brief left open ends your turn with a report that begins DECISION NEEDED (the rules above say what counts). That report is a finished turn, not a question to answer yourself.
+<the No-tidying block>
+Skills to load before the first edit: the skills that govern the files. Size: five handlers and one helper to read, three source files and one test file to edit, six gates.
+```
