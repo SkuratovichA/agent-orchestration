@@ -11,7 +11,7 @@ claude plugin install agorch@agorch
 
 The same from inside a session: `/plugin marketplace add SkuratovichA/agorch`, then `/plugin install agorch@agorch`. A new session then starts with the line "The agorch plugin is active".
 
-After a rename from `agent-orchestration`, the skills are `agorch:agorch`, `agorch:writing-briefs` and `agorch:mapping-codebases`, the agent types are `agorch:builder-m` and so on, and the codebase maps are looked for in `${XDG_CACHE_HOME:-~/.cache}/agorch/maps` (move an old `agent-orchestration/maps` there to keep them). Anything of yours that names the old skills or types, a CLAUDE.md or a permission rule, needs the new names.
+After a rename from `agent-orchestration`, the skills are `agorch:agorch`, `agorch:writing-briefs`, `agorch:mapping-codebases` and, since 0.14.0, `agorch:writing-text`, the agent types are `agorch:builder-m` and so on, and the codebase maps are looked for in `${XDG_CACHE_HOME:-~/.cache}/agorch/maps` (move an old `agent-orchestration/maps` there to keep them). Anything of yours that names the old skills or types, a CLAUDE.md or a permission rule, needs the new names.
 
 `jq` is optional. Without it the Bash-output check, the turn limit and the language-server check do nothing; the skills, the agents and the worker block work the same.
 
@@ -37,6 +37,7 @@ agorch does not list gsttt under `dependencies` in its manifest, on purpose: a d
 | `skills/writing-briefs/` | The `agorch:writing-briefs` skill: the brief skeleton, the blocks to paste, how to treat a report |
 | `skills/writing-briefs/references/` | The brief templates and the Workflow-stage rules |
 | `skills/mapping-codebases/` | The `agorch:mapping-codebases` skill: reading, refreshing and building the per-repository codebase map |
+| `skills/writing-text/` | The `agorch:writing-text` skill: how to write any text so it is easy to scan and read (chat messages, PR descriptions, docs, articles, artifacts), with a script that audits a markdown file |
 | `agents/` | The agent types below |
 | `hooks/` | The hooks below, with a test file beside each script |
 | `bin/agent-turns` | The command that reads and moves a run's turn limit, on the Bash tool's PATH while the plugin is enabled |
