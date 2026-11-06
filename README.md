@@ -52,7 +52,7 @@ These are the plugin's defaults. A user's or a project's CLAUDE.md overrides the
 | Agent type | Model, effort | Turn limit | Tools | For |
 | --- | --- | --- | --- | --- |
 | `agorch:reader` | haiku, max | 60 | Bash, Read, Grep, Glob, LSP, Skill | reconnaissance: follows a lead over several steps and returns the answer or where it got stuck, never raw output |
-| `agorch:builder-m` | sonnet, medium | none | all | the default implementer: a task or a batch of tasks whose brief leaves no architectural question open |
+| `agorch:builder-m` | sonnet, high | none | all | the default implementer: a task or a batch of tasks whose brief leaves no architectural question open |
 | `agorch:builder-l` | sonnet, xhigh | none | all | only mission-critical work or work that needs long reasoning, never work that is merely large |
 | `agorch:reviewer` | sonnet, xhigh | 300 | Read, Grep, Glob, LSP, Skill | code review of a diff, a pull request or a whole batch: correctness, reuse, tests, style |
 | `agorch:reviewer-arch` | opus, high | 300 | Read, Grep, Glob, LSP, Skill | architectural review, only on request or when the plan marks the change as architecture-level |

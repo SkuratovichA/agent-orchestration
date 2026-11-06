@@ -28,7 +28,7 @@ Spawn these instead of `general-purpose` when the stage fits. Model and effort a
 | Agent type | Model, effort | Turn limit | Spawn it for |
 | --- | --- | --- | --- |
 | `agorch:reader` | `haiku`, `max` | 60 | reconnaissance: it follows a lead over several steps and returns the answer, or exactly where it got stuck. Not for a one-liner whose output is known to be small |
-| `agorch:builder-m` | `sonnet`, `medium` | none | the default implementer: a task or a batch whose brief leaves no architectural question open |
+| `agorch:builder-m` | `sonnet`, `high` | none | the default implementer: a task or a batch whose brief leaves no architectural question open |
 | `agorch:builder-l` | `sonnet`, `xhigh` | none | only mission-critical work (money, auth, data loss, an irreversible migration) or long reasoning (concurrency, state, a protocol); size is no reason |
 | `agorch:reviewer` | `sonnet`, `xhigh` | 300 | review of a diff, a pull request or a whole batch for correctness, reuse, tests and style; it has no shell and cannot edit |
 | `agorch:reviewer-arch` | `opus`, `high` | 300 | architectural review, only when the user asks for it or the plan marks the change as architecture-level; it has no shell and cannot edit |
