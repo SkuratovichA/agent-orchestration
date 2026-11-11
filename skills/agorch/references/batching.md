@@ -48,6 +48,18 @@ SendMessage({ to: '<agent id>', message: 'Decision: option B, because <reason>. 
 - Answer once, in a sentence, with the reason, so the next task of the batch that runs into the same choice follows it.
 - In a Workflow stage nothing can be resumed: settle the design in the stage's prompt, or split the stage at the decision.
 
+## When builder-m could not prove a task: one step up, once
+
+A task `builder-m` could not prove goes to `builder-l` once, alone, with the failure in its brief. That covers a proving command still red when the builder stopped, a task it reports as not done, and a correctness finding of the reviewer that you confirmed. The brief carries the task as it was, the proving command, its failure word for word, and what `builder-m` tried. The task does not go back to `builder-m`, and you do not fix it in the session.
+
+```ts
+Agent({ subagent_type: 'agorch:builder-l', prompt: `${taskBrief}\n\n# What failed under builder-m\n${proof} exit=${code}\n${failureVerbatim}\nTried: ${attempts}` })
+```
+
+- This is why `builder-m` runs at `medium`. In Anthropic's cost guide, running every checkable task at a low effort and re-running only the failures at a higher one was the cheapest policy measured: about 97% solved for $0.17 a task, against 95.3% for $0.29 with everything at `high` (Opus 5.5, SWE-bench Pro subset), and most of the lift was the second attempt itself. Sonnet 5.5 at `medium` scored about 7 points below `high` on the same set for 59% of the cost, so the first rung fails more often and the second pays it back.
+- It works only where the check is real. A gate that would still pass with the change reverted proves nothing, so a green gate is not the end of the check for a task whose criterion it does not pin: the reviewer's finding is that task's check.
+- One step, once. A task `builder-l` could not prove either comes back to you as a decision: re-scope it, or put it to the user, who may ask for `builder-xl`. Never raise the effort of a whole batch because one task in it failed.
+
 ## Reviewing a batch
 
 One `agorch:reviewer` reads the whole batch, not one per task: give it the combined diff as a file, the list of tasks with their intent, and the tests that prove them. A separate review per task repeats the start and misses what the tasks do to each other. Use `reviewer-arch` only when the plan marks a task as architecture-level.

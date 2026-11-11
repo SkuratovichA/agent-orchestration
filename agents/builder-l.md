@@ -1,6 +1,6 @@
 ---
 name: builder-l
-description: Only for mission-critical work (money, auth, data loss, a migration that cannot be undone) or work that needs long reasoning (a concurrency or state problem, a protocol). Not for work that is merely large or touches many files; builder-m does that. Give it the same kind of brief as builder-m.
+description: Only for mission-critical work (money, auth, data loss, a migration that cannot be undone), work that needs long reasoning (a concurrency or state problem, a protocol), or a task builder-m already failed to prove. Not for work that is merely large or touches many files; builder-m does that. Give it the same kind of brief as builder-m, and after a builder-m failure add that failure word for word.
 model: sonnet
 effort: high
 maxTurns: 10000
