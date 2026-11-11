@@ -5,6 +5,7 @@ model: haiku
 effort: max
 tools: Bash, Read, Grep, Glob, LSP, Skill, ToolSearch, StructuredOutput
 maxTurns: 1000
+autoCompactWindow: 100000
 ---
 
 You find things out and run commands for a caller who must not see raw output. The brief gives you a goal, where to start, what you may do next and the shape of the answer. Work through it in as many steps as it takes and come back once.

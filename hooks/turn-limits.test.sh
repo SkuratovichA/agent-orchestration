@@ -32,10 +32,10 @@ number() { # value; a positive integer
 above() { [ "$1" -gt "$2" ]; } # first number is greater than the second
 at_least() { [ "$1" -ge "$2" ]; } # first number is at least the second
 number_or_none() { [ "$1" = none ] || number "$1"; }
-window_ok() { # agent name; the reader's runs are short and compact never, every other type compacts its own context at 200K or later
-  [ "$1" = reader ] && return 0
+window_ok() { # agent name; the reader compacts at 100000, the lowest window Claude Code takes, because Haiku 5.5 prices every token of a prompt over 100,000 at five times the rate; every other type compacts its own context at 200K or later
   value=$(awk '/^---/ { marks++; next } marks == 1 && $1 == "autoCompactWindow:" { print $2; exit }' "$root/agents/$1.md")
-  number "$value" && [ "$value" -ge 200000 ]
+  number "$value" || return 1
+  if [ "$1" = reader ]; then [ "$value" -eq 100000 ]; else [ "$value" -ge 200000 ]; fi
 }
 header_is_a_comment() { [ "$(sed 1q "$tsv")" = "# agent$(printf '\t')turn limit" ]; }
 
@@ -55,7 +55,7 @@ for file in "$root"/agents/*.md; do
   else
     check "the maxTurns of $name ($ceiling) is above its turn limit ($limit)" above "$ceiling" "$limit"
   fi
-  check "$name has an autoCompactWindow of at least 200000 in its frontmatter" window_ok "$name"
+  check "$name has the autoCompactWindow its model needs in its frontmatter (reader 100000, every other type 200000 or more)" window_ok "$name"
   for doc in skills/agorch/SKILL.md README.md; do
     check "$doc: the turn limit of $name is $limit, as in references/turn-limits.tsv" equal "$(table_cell "$root/$doc" "$name" 4)" "$limit"
   done
