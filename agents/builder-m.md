@@ -2,7 +2,7 @@
 name: builder-m
 description: The default implementer, for nearly all work. Turns a brief, one task or a batch of them, with verified loci, constraints, acceptance criteria and the proving command for each into finished, verified changes. Use builder-l only for mission-critical work or work that needs long reasoning.
 model: sonnet
-effort: high
+effort: medium
 maxTurns: 10000
 autoCompactWindow: 200000
 ---

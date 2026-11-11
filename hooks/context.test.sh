@@ -35,6 +35,7 @@ silent() { # agent_type
 
 emits "plugin builder-m" agorch:builder-m
 emits "plugin builder-l" agorch:builder-l
+emits "plugin builder-xl" agorch:builder-xl
 emits "input without agent_type" ""
 for t in agorch:reader agorch:reviewer agorch:reviewer-arch Explore Plan general-purpose statusline-setup claude-code-guide other-plugin:builder-m my-agorch:builder-m; do silent "$t"; done
 
