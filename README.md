@@ -15,25 +15,13 @@ After a rename from `agent-orchestration`, the skills are `agorch:agorch`, `agor
 
 `jq` is optional. Without it the Bash-output check, the turn limit and the language-server check do nothing; the skills, the agents and the worker block work the same.
 
-### Pairing with gsttt
-
-Added in 0.13.0. agorch works alone and works better next to [gsttt](https://github.com/SkuratovichA/gsttt), a separate plugin that answers what a change affects: from an index of a repository's imports and contracts (HTTP routes, GraphQL, gRPC, tables, queues, environment variables) it lists what a change reaches, what calls a name and who imports a file, in milliseconds, and it says how much of the repository it covered. The codebase map says what code is for and gsttt says what it reaches, so `agorch:agorch` and `agorch:mapping-codebases` ask gsttt for the second whenever its tools are listed, and fall back to the language server and grep when it is not installed or does not read the language (it reads TypeScript, JavaScript, Python and Rust).
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/SkuratovichA/gsttt/main/install.sh | sh
-claude plugin marketplace add SkuratovichA/gsttt
-claude plugin install gsttt@gsttt
-```
-
-agorch does not list gsttt under `dependencies` in its manifest, on purpose: a dependency must be enabled for the plugin to load, and one from another marketplace is not installed unless the marketplace file lists it in `allowCrossMarketplaceDependenciesOn`, so agorch would stop loading wherever gsttt is missing.
-
 ## What is in it
 
 | Path | What it is |
 | --- | --- |
 | `skills/agorch/` | The `agorch:agorch` skill: model and effort per stage, the agent roster, when a command runs directly and when it goes to a reader, several builders in one tree, staged verification, context economics |
 | `skills/agorch/references/worker-brief-block.md` | The short block of rules a builder works under |
-| `skills/agorch/references/` | Also the sections the skill points to when they are needed: language servers, several builders in one tree, staged verification and cheap swarms, turn limits, roster notes, the session's own budget |
+| `skills/agorch/references/` | Also the sections the skill points to when they are needed: language servers, batching tasks, several builders in one tree, staged verification and cheap swarms, turn limits, roster notes, the session's own budget |
 | `skills/writing-briefs/` | The `agorch:writing-briefs` skill: the brief skeleton, the blocks to paste, how to treat a report |
 | `skills/writing-briefs/references/` | The brief templates and the Workflow-stage rules |
 | `skills/mapping-codebases/` | The `agorch:mapping-codebases` skill: reading, refreshing and building the per-repository codebase map |
@@ -57,7 +45,7 @@ These are the plugin's defaults. A user's or a project's CLAUDE.md overrides the
 | `agorch:reviewer` | sonnet, xhigh | 300 | Read, Grep, Glob, LSP, Skill | code review of a diff, a pull request or a whole batch: correctness, reuse, tests, style |
 | `agorch:reviewer-arch` | opus, high | 300 | Read, Grep, Glob, LSP, Skill | architectural review, only on request or when the plan marks the change as architecture-level |
 
-Work is batched: twenty tasks are four or five builders, each given its tasks in order, and one reviewer reads the whole batch (`skills/agorch/references/batching.md`). A builder never decides an architectural question itself: it finishes the tasks that do not depend on it and ends its turn with a `DECISION NEEDED` report, and the orchestrator answers it with `SendMessage`.
+Work is batched: twenty tasks are four or five builders, each given its tasks in order, and one reviewer reads the whole batch (`skills/agorch/references/batching.md`). A builder never decides an architectural question itself: it finishes the tasks that do not depend on it and ends its turn with a `DECISION NEEDED` report, and the orchestrator answers it with `SendMessage`. Before it reports, a builder traces the callers, fallbacks, else branches and error handlers of the lines it changed: a path that would still fail an acceptance criterion for the same reason is fixed when it is in the builder's files, and otherwise reported as `SIBLING RISK file:line`, so the scope stays what the brief says.
 
 The builders have no turn limit, because a batch takes many turns, and every non-reader type compacts its own context at 200K tokens (`autoCompactWindow` in its definition). The other types keep a runaway stop far above ordinary work (the reader about 3x the p99 of past runs, the reviewers sized for a batch). The plugin's hook enforces it, not Claude Code: it counts the run's tool rounds, notes the count at 75% of the limit and at the limit, and from then on refuses the run's tool calls with a reason, so the run ends with a report of what is done and what is left. The parent session moves the limit, or gives a builder one, whenever it wants and resumes a refused run with `SendMessage`:
 
@@ -112,7 +100,7 @@ for target in . .claude-plugin/plugin.json agents skills; do claude plugin valid
 for t in hooks/*.test.sh; do sh "$t" || break; done
 ```
 
-Validating the directory checks the marketplace manifest only, which is why the plugin manifest, the agents and the skills are named one by one. CI runs the same two steps on every push. Bump `version` in `.claude-plugin/plugin.json` with every release: an installed copy stays on its version until that field changes.
+Validating the directory checks the marketplace manifest only, which is why the plugin manifest, the agents and the skills are named one by one. CI runs the same two steps on every push. Bump `version` in `.claude-plugin/plugin.json` with every release: an installed copy stays on its version until that field changes. `claude plugin details agorch` prints the component inventory and the projected token cost: about 1,100 tokens in every session, and the hooks add none.
 
 ## Reference
 
@@ -160,7 +148,11 @@ Measured on 2026-10-18 over 3,169 subagent runs, a turn being one request. The p
 
 ### The codebase map
 
-Added in 0.10.0. The `agorch:mapping-codebases` skill keeps one map per repository in `${XDG_CACHE_HOME:-~/.cache}/agorch/maps/<repo>-<key>/`, outside the working tree, where `bin/codebase-map dir` creates and prints it. All worktrees of a repository share that directory, and nothing in it is ever committed. The map is a lead, not proof: a session confirms a claim with the language server or one grep before a plan relies on it, and when the code disagrees the code wins and that module is due for a refresh. The module readers run on the reader type (`haiku`) and the index reader on `sonnet`. `hooks/map-check.sh` tells a new session that a map exists and how stale it is, and the planning section of the `agorch` skill sends the orchestrator to its `INDEX.md`. With gsttt installed, the orchestrator and the module readers take who-uses-what from it instead of grep (see Pairing with gsttt).
+Added in 0.10.0. The `agorch:mapping-codebases` skill keeps one map per repository in `${XDG_CACHE_HOME:-~/.cache}/agorch/maps/<repo>-<key>/`, outside the working tree, where `bin/codebase-map dir` creates and prints it. All worktrees of a repository share that directory, and nothing in it is ever committed. The map is a lead, not proof: a session confirms a claim with the language server or one grep before a plan relies on it, and when the code disagrees the code wins and that module is due for a refresh. The module readers run on the reader type (`haiku`) and the index reader on `sonnet`. `hooks/map-check.sh` tells a new session that a map exists and how stale it is, and the planning section of the `agorch` skill sends the orchestrator to its `INDEX.md`.
+
+### Where the high effort and the sibling-path rule of builder-m come from
+
+Added in 0.14.1; checked on 2026-11-06. `builder-m` ran at `medium` until then. Surge's benchmark of coding-agent harnesses (100 tasks of its sudo L7 set, Opus 5.5 in Claude Code, published 2026-11-05) raised vanilla Claude Code from medium to xhigh effort and gained 11.3 points, against 2 to 3 for the best harness additions, at 3.5 times the cost; most of the gain was in Verification & Thoroughness (+14.9) and Persistence (+9.8). Its worked example is a crash fix that scored 14/100 at medium, where the agent fixed the bug it was shown and stopped while a fallback path with the same assumption still crashed, and 100/100 at xhigh. The same benchmark found a setup with 37 skills and 17 agents costing 8 times as much and scoring below vanilla, which agrees with the batching rule here. The result is for Opus, not for Sonnet, and nothing here has measured `builder-m` at either level: the change follows the mechanism, the sibling-path rule in `agents/builder-m.md` is the counter to the stop-after-the-named-bug failure, and `high` is not `xhigh`. https://surgehq.ai/blog/benchmarking-coding-agent-harnesses
 
 ### Where the placement and plain-code rules come from
 
