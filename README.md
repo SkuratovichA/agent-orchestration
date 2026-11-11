@@ -101,7 +101,7 @@ for target in . .claude-plugin/plugin.json agents skills; do claude plugin valid
 for t in hooks/*.test.sh; do sh "$t" || break; done
 ```
 
-Validating the directory checks the marketplace manifest only, which is why the plugin manifest, the agents and the skills are named one by one. CI runs the same two steps on every push. Bump `version` in `.claude-plugin/plugin.json` with every release: an installed copy stays on its version until that field changes. `claude plugin details agorch` prints the component inventory and the projected token cost: about 1,100 tokens in every session, and the hooks add none.
+Validating the directory checks the marketplace manifest only, which is why the plugin manifest, the agents and the skills are named one by one. CI runs the same two steps on every push. Bump `version` in `.claude-plugin/plugin.json` with every release: an installed copy stays on its version until that field changes. `claude plugin details agorch` prints the component inventory and the projected token cost: about 1,200 tokens in every session, and the hooks add none.
 
 ## Reference
 
