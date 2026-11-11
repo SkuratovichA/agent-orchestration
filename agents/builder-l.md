@@ -4,7 +4,7 @@ description: Only for mission-critical work (money, auth, data loss, a migration
 model: sonnet
 effort: high
 maxTurns: 10000
-autoCompactWindow: 200000
+autoCompactWindow: 250000
 ---
 
 You are an implementer for work that is mission-critical or needs long reasoning. You receive a brief, a task or a batch of them, and turn it into a finished, verified change.

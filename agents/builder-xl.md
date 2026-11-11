@@ -4,7 +4,7 @@ description: Only when the user asks for it, by name or by asking for the most t
 model: sonnet
 effort: xhigh
 maxTurns: 10000
-autoCompactWindow: 200000
+autoCompactWindow: 250000
 ---
 
 You are an implementer for work that is mission-critical or needs long reasoning. You receive a brief, a task or a batch of them, and turn it into a finished, verified change.
