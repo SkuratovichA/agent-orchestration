@@ -7,7 +7,7 @@ description: Use before planning or briefing a change in a repository whose layo
 
 Someone who knows a codebase carries a map of it: which module does what, where the shared helpers live, who calls whom, how a request travels through it. A session starts without that map. A builder briefed without it writes the helper that already exists two packages away, or keeps a general one inside the feature where nobody else will find it. This skill keeps the map on disk, outside the repository, so cheap readers write it once and every later session and worktree reuses it.
 
-The map is a lead, not proof. Before a plan or a brief relies on something the map says, confirm it with gsttt when its tools are listed (see "With gsttt" below), otherwise with the language server or one grep. When the code disagrees, the code wins and that module is due for a refresh.
+The map is a lead, not proof. Before a plan or a brief relies on something the map says, confirm it with the language server or one grep. When the code disagrees, the code wins and that module is due for a refresh.
 
 ## Where it lives
 
@@ -54,17 +54,6 @@ Then run `codebase-map stamp`. Rebuild from step 1 instead when any of these hol
 - `status` says the repository does not have the build commit;
 - more than half of the modules changed;
 - the `unmapped` count is files in a new top-level directory.
-
-## With gsttt
-
-The map says what code is for. The separate `gsttt` plugin says what code reaches: from an index of imports and contracts it answers what a change affects, what calls a name, who imports a file and who serves a route, and every answer ends with how much it covered and how fresh the index is. Neither does the other's job. gsttt knows nothing of purpose, shared helpers, flows or where new code belongs, and the map ages where the index refreshes on every question. gsttt reads TypeScript, JavaScript, Python and Rust, so for other code, and for a file an answer calls "not in the index", it says nothing: when `gsttt coverage` or the last lines of an answer say no connector read the files you care about, use the map, the language server and grep as before.
-
-When the gsttt tools are listed (`impact`, `dependents`, `dependencies`, `path`, `contract`), or `command -v gsttt` succeeds in a reader's shell:
-- Ask it, not a reader's grep, for the callers a change reaches (Reading it, step 3). `impact` with the file in `paths` and the symbol in `names` lists the direct callers with their lines, and `dependents` and `dependencies` list the importers and the imports of a file. An answer that ends with a `stale:` line wants `gsttt index` first.
-- Confirm a claim of the map about who uses what with `dependents` or `impact`. That replaces the "one grep" above.
-- When building, keep the `<gsttt only>` line of the module brief (`references/map-briefs.md`) for each module whose language `gsttt coverage` lists. Its module file then keeps purpose, helpers and conventions, and takes users and dependencies from the index.
-- Work that only needs reach, such as a rename, a deletion or a changed signature, needs no map in a repository gsttt covers. Build the map when the work needs to know where something belongs.
-- An answer can run to 25,000 characters. Ask narrowly (a name, `tests: false`), or send the CLI's output to a file and read the part you need.
 
 ## Where new code goes
 
