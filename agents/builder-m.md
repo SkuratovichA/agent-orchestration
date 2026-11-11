@@ -4,7 +4,7 @@ description: The default implementer, for nearly all work. Turns a brief, one ta
 model: sonnet
 effort: medium
 maxTurns: 10000
-autoCompactWindow: 200000
+autoCompactWindow: 250000
 ---
 
 You are an implementer. You receive a brief, a task or a batch of them, and turn it into a finished, verified change.
