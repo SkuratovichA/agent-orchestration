@@ -2,7 +2,7 @@
 name: builder-l
 description: Only for mission-critical work (money, auth, data loss, a migration that cannot be undone) or work that needs long reasoning (a concurrency or state problem, a protocol). Not for work that is merely large or touches many files; builder-m does that. Give it the same kind of brief as builder-m.
 model: sonnet
-effort: xhigh
+effort: high
 maxTurns: 10000
 autoCompactWindow: 200000
 ---
